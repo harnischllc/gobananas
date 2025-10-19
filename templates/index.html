@@ -11,49 +11,350 @@
     <div class="container">
         <div class="row justify-content-center">
             <div class="col-md-8">
-                <div class="card mt-5">
-                    <div class="card-header text-center">
-                        <h1 class="mb-0">🍌 Go Bananas</h1>
-                        <p class="text-muted">Banana Ripeness Detection</p>
-                    </div>
-                    <div class="card-body">
-                        <form id="bananaForm" enctype="multipart/form-data">
+                <!-- Header Section -->
+                <div class="text-center mt-4 mb-4">
+                    <h1 class="display-4 fw-bold text-warning">🍌 Go Bananas</h1>
+                    <h2 class="h4 text-muted mb-3">Banana Ripeness Detector</h2>
+                    <p class="lead">Upload a banana photo or pick a color to estimate ripeness</p>
+                </div>
+
+                <!-- Main Form Card -->
+                <div class="card shadow-lg">
+                    <div class="card-body p-4">
+                        <form id="bananaForm" action="/classify" method="POST" enctype="multipart/form-data">
+                            <!-- Upload Option -->
                             <div class="mb-4">
-                                <label for="bananaImage" class="form-label">Upload a banana image:</label>
-                                <input type="file" class="form-control" id="bananaImage" name="image" accept="image/*" required>
-                                <div class="form-text">Supported formats: JPG, PNG, GIF</div>
+                                <h5 class="mb-3">📸 Upload Banana Photo</h5>
+                                <div class="upload-area" id="uploadArea">
+                                    <div class="upload-content text-center">
+                                        <i class="fas fa-camera fa-3x text-muted mb-3"></i>
+                                        <p class="mb-2">Click to upload or drag & drop</p>
+                                        <p class="text-muted small">PNG, JPG, JPEG, GIF, BMP</p>
+                                    </div>
+                                    <input type="file" class="form-control d-none" id="bananaImage" name="image" 
+                                           accept="image/*" capture="environment">
+                                </div>
+                                <div id="imagePreview" class="mt-3 d-none">
+                                    <img id="previewImg" class="img-thumbnail" style="max-width: 200px; max-height: 200px;">
+                                    <div class="mt-2">
+                                        <button type="button" class="btn btn-sm btn-outline-danger" id="removeImage">Remove</button>
+                                    </div>
+                                </div>
                             </div>
-                            
+
+                            <!-- Divider -->
+                            <div class="text-center mb-4">
+                                <span class="text-muted">OR</span>
+                            </div>
+
+                            <!-- Color Picker Option -->
+                            <div class="mb-4">
+                                <h5 class="mb-3">🎨 Pick Banana Color</h5>
+                                <div class="row align-items-center">
+                                    <div class="col-md-6">
+                                        <input type="color" class="form-control form-control-color" id="colorPicker" 
+                                               name="color" value="#32CD32" title="Choose banana color">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="input-group">
+                                            <span class="input-group-text">#</span>
+                                            <input type="text" class="form-control" id="hexInput" placeholder="FFD700" 
+                                                   pattern="[0-9A-Fa-f]{6}" maxlength="6">
+                                        </div>
+                                        <div class="form-text">Enter hex color code</div>
+                                    </div>
+                                </div>
+                                <div class="mt-3">
+                                    <div id="colorSwatch" class="color-swatch">
+                                        <div class="swatch-color" style="background-color: #32CD32;"></div>
+                                        <div class="swatch-info">
+                                            <strong>Selected Color</strong><br>
+                                            <span id="colorHex">#32CD32</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Submit Button -->
                             <div class="text-center">
-                                <button type="submit" class="btn btn-warning btn-lg" id="detectBtn">
+                                <button type="submit" class="btn btn-warning btn-lg px-5" id="submitBtn">
                                     <span class="spinner-border spinner-border-sm d-none" id="loadingSpinner"></span>
-                                    Detect Ripeness
+                                    <i class="fas fa-search me-2"></i>
+                                    Analyze Ripeness
                                 </button>
                             </div>
                         </form>
-                        
-                        <div id="resultContainer" class="mt-4 d-none">
-                            <!-- Results will be displayed here -->
+                    </div>
+                </div>
+
+                <!-- How It Works Card -->
+                <div class="card mt-4">
+                    <div class="card-body">
+                        <h5 class="card-title">🔬 How It Works</h5>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h6>For Photos:</h6>
+                                <ol>
+                                    <li>Upload a clear photo of your banana</li>
+                                    <li>Our AI extracts the dominant color</li>
+                                    <li>Color is mapped to ripeness stage</li>
+                                    <li>Get detailed analysis and recommendations</li>
+                                </ol>
+                            </div>
+                            <div class="col-md-6">
+                                <h6>For Color Picker:</h6>
+                                <ol>
+                                    <li>Select the color that matches your banana</li>
+                                    <li>Color is converted to hue value</li>
+                                    <li>Hue is mapped to ripeness stage</li>
+                                    <li>Get instant ripeness estimation</li>
+                                </ol>
+                            </div>
                         </div>
                     </div>
                 </div>
-                
+
+                <!-- Quick Color Guide -->
                 <div class="card mt-4">
                     <div class="card-body">
-                        <h5>How it works:</h5>
-                        <ol>
-                            <li>Upload a clear photo of your banana</li>
-                            <li>Our AI analyzes the color patterns</li>
-                            <li>Get instant ripeness level feedback</li>
-                            <li>Know when your banana is perfect to eat!</li>
-                        </ol>
+                        <h5 class="card-title">🌈 Banana Color Guide</h5>
+                        <div class="row text-center">
+                            <div class="col-md-3 col-6 mb-3">
+                                <div class="color-guide-item">
+                                    <div class="color-circle" style="background-color: #228B22;"></div>
+                                    <small>Stage 1-2<br>Green</small>
+                                </div>
+                            </div>
+                            <div class="col-md-3 col-6 mb-3">
+                                <div class="color-guide-item">
+                                    <div class="color-circle" style="background-color: #9ACD32;"></div>
+                                    <small>Stage 3-4<br>Light Green</small>
+                                </div>
+                            </div>
+                            <div class="col-md-3 col-6 mb-3">
+                                <div class="color-guide-item">
+                                    <div class="color-circle" style="background-color: #FFD700;"></div>
+                                    <small>Stage 5-6<br>Yellow</small>
+                                </div>
+                            </div>
+                            <div class="col-md-3 col-6 mb-3">
+                                <div class="color-guide-item">
+                                    <div class="color-circle" style="background-color: #D2691E;"></div>
+                                    <small>Stage 7<br>Brown</small>
+                                </div>
+                            </div>
+                        </div>
                     </div>
+                </div>
+
+                <!-- Footer Links -->
+                <div class="text-center mt-4 mb-4">
+                    <a href="/about" class="btn btn-outline-secondary me-3">
+                        <i class="fas fa-info-circle me-1"></i>About
+                    </a>
+                    <a href="/api/docs" class="btn btn-outline-info">
+                        <i class="fas fa-code me-1"></i>API Docs
+                    </a>
                 </div>
             </div>
         </div>
     </div>
 
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
+    <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Custom JavaScript -->
     <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    
+    <script>
+        // Enhanced form handling for the new interface
+        document.addEventListener('DOMContentLoaded', function() {
+            const uploadArea = document.getElementById('uploadArea');
+            const fileInput = document.getElementById('bananaImage');
+            const imagePreview = document.getElementById('imagePreview');
+            const previewImg = document.getElementById('previewImg');
+            const removeImageBtn = document.getElementById('removeImage');
+            const colorPicker = document.getElementById('colorPicker');
+            const hexInput = document.getElementById('hexInput');
+            const colorSwatch = document.getElementById('colorSwatch');
+            const colorHex = document.getElementById('colorHex');
+            const form = document.getElementById('bananaForm');
+            const submitBtn = document.getElementById('submitBtn');
+            const loadingSpinner = document.getElementById('loadingSpinner');
+
+            // Upload area click handler
+            uploadArea.addEventListener('click', () => fileInput.click());
+
+            // Drag and drop functionality
+            uploadArea.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                uploadArea.classList.add('drag-over');
+            });
+
+            uploadArea.addEventListener('dragleave', () => {
+                uploadArea.classList.remove('drag-over');
+            });
+
+            uploadArea.addEventListener('drop', (e) => {
+                e.preventDefault();
+                uploadArea.classList.remove('drag-over');
+                const files = e.dataTransfer.files;
+                if (files.length > 0) {
+                    fileInput.files = files;
+                    handleImageUpload(files[0]);
+                }
+            });
+
+            // File input change handler
+            fileInput.addEventListener('change', (e) => {
+                if (e.target.files.length > 0) {
+                    handleImageUpload(e.target.files[0]);
+                }
+            });
+
+            // Remove image handler
+            removeImageBtn.addEventListener('click', () => {
+                fileInput.value = '';
+                imagePreview.classList.add('d-none');
+                uploadArea.classList.remove('d-none');
+            });
+
+            // Color picker handlers
+            colorPicker.addEventListener('input', (e) => {
+                const color = e.target.value;
+                hexInput.value = color.substring(1);
+                updateColorSwatch(color);
+            });
+
+            hexInput.addEventListener('input', (e) => {
+                const hex = e.target.value;
+                if (/^[0-9A-Fa-f]{6}$/.test(hex)) {
+                    const color = '#' + hex;
+                    colorPicker.value = color;
+                    updateColorSwatch(color);
+                }
+            });
+
+            // Form submission handler
+            form.addEventListener('submit', (e) => {
+                e.preventDefault();
+                
+                const hasImage = fileInput.files.length > 0;
+                const hasColor = colorPicker.value;
+                
+                if (!hasImage && !hasColor) {
+                    alert('Please upload an image or select a color!');
+                    return;
+                }
+                
+                // Show loading state
+                submitBtn.disabled = true;
+                loadingSpinner.classList.remove('d-none');
+                
+                // Submit form
+                form.submit();
+            });
+
+            function handleImageUpload(file) {
+                if (file && file.type.startsWith('image/')) {
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        previewImg.src = e.target.result;
+                        imagePreview.classList.remove('d-none');
+                        uploadArea.classList.add('d-none');
+                    };
+                    reader.readAsDataURL(file);
+                }
+            }
+
+            function updateColorSwatch(color) {
+                const swatchColor = colorSwatch.querySelector('.swatch-color');
+                swatchColor.style.backgroundColor = color;
+                colorHex.textContent = color.toUpperCase();
+            }
+
+            // Initialize color swatch
+            updateColorSwatch(colorPicker.value);
+        });
+    </script>
+
+    <style>
+        .upload-area {
+            border: 2px dashed #dee2e6;
+            border-radius: 10px;
+            padding: 2rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background-color: #f8f9fa;
+        }
+
+        .upload-area:hover {
+            border-color: #ffd700;
+            background-color: #fffbf0;
+        }
+
+        .upload-area.drag-over {
+            border-color: #ffd700;
+            background-color: #fffbf0;
+            transform: scale(1.02);
+        }
+
+        .color-swatch {
+            display: flex;
+            align-items: center;
+            padding: 1rem;
+            border: 1px solid #dee2e6;
+            border-radius: 10px;
+            background-color: #f8f9fa;
+        }
+
+        .swatch-color {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            margin-right: 1rem;
+            border: 3px solid #fff;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .swatch-info {
+            flex: 1;
+        }
+
+        .color-guide-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .color-circle {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            margin-bottom: 0.5rem;
+            border: 2px solid #fff;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        @media (max-width: 768px) {
+            .upload-area {
+                padding: 1.5rem;
+            }
+            
+            .color-swatch {
+                flex-direction: column;
+                text-align: center;
+            }
+            
+            .swatch-color {
+                margin-right: 0;
+                margin-bottom: 1rem;
+            }
+        }
+    </style>
 </body>
 </html>

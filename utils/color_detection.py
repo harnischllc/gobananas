@@ -1,5 +1,9 @@
 """
 Banana ripeness detection using color analysis
+
+This module provides comprehensive banana ripeness detection functionality
+using computer vision and color analysis techniques based on the USDA
+banana color scale.
 """
 
 import cv2
@@ -7,6 +11,10 @@ import numpy as np
 from PIL import Image
 import io
 import colorsys
+import logging
+
+# Set up logging
+logger = logging.getLogger(__name__)
 
 # Duration ranges for each stage (min_days, max_days)
 DURATION_RANGES = {
@@ -89,28 +97,63 @@ def extract_dominant_color(image_bytes):
     """
     Extract the dominant hue from an image using color analysis.
     
+    This function processes an image to identify the most prominent color
+    and returns its hue value in degrees. It uses HSV color space for
+    more accurate color analysis.
+    
     Args:
         image_bytes (bytes): Image data as bytes
         
     Returns:
         float: Dominant hue value in degrees (0-360)
+        
+    Raises:
+        ValueError: If image_bytes is invalid or empty
+        Exception: For other image processing errors
     """
     try:
+        logger.debug(f"Processing image with {len(image_bytes)} bytes")
+        
+        # Validate input
+        if not image_bytes or len(image_bytes) == 0:
+            logger.error("Empty image data provided")
+            raise ValueError("Empty image data provided")
+        
         # Open image from bytes
-        image = Image.open(io.BytesIO(image_bytes))
+        try:
+            image = Image.open(io.BytesIO(image_bytes))
+            logger.debug(f"Successfully opened image: {image.size}, mode: {image.mode}")
+        except Exception as e:
+            logger.error(f"Failed to open image: {str(e)}")
+            raise ValueError(f"Invalid image format: {str(e)}")
         
         # Convert to RGB if necessary
         if image.mode != 'RGB':
+            logger.debug(f"Converting image from {image.mode} to RGB")
             image = image.convert('RGB')
         
         # Convert to HSV
-        hsv_image = image.convert('HSV')
+        try:
+            hsv_image = image.convert('HSV')
+            logger.debug("Successfully converted image to HSV color space")
+        except Exception as e:
+            logger.error(f"Failed to convert image to HSV: {str(e)}")
+            raise ValueError(f"Color space conversion failed: {str(e)}")
         
         # Get pixel data
         pixels = list(hsv_image.getdata())
+        logger.debug(f"Extracted {len(pixels)} pixels for analysis")
+        
+        if not pixels:
+            logger.error("No pixels found in image")
+            raise ValueError("No pixel data found in image")
         
         # Extract hue values (first channel of HSV)
-        hue_values = [pixel[0] for pixel in pixels]
+        hue_values = [pixel[0] for pixel in pixels if len(pixel) >= 3]
+        
+        if not hue_values:
+            logger.error("No valid hue values found")
+            raise ValueError("No valid color data found in image")
         
         # Calculate dominant hue (most frequent hue)
         hue_counts = {}
@@ -119,14 +162,24 @@ def extract_dominant_color(image_bytes):
             rounded_hue = round(hue / 5) * 5
             hue_counts[rounded_hue] = hue_counts.get(rounded_hue, 0) + 1
         
+        if not hue_counts:
+            logger.error("No hue counts generated")
+            raise ValueError("Failed to analyze image colors")
+        
         # Find the most frequent hue
         dominant_hue = max(hue_counts, key=hue_counts.get)
         
         # Convert from 0-255 range to 0-360 degrees
-        return (dominant_hue / 255) * 360
+        result_hue = (dominant_hue / 255) * 360
         
+        logger.info(f"Extracted dominant hue: {result_hue:.2f}° from {len(hue_values)} pixels")
+        return result_hue
+        
+    except ValueError as e:
+        logger.error(f"Validation error in extract_dominant_color: {str(e)}")
+        raise
     except Exception as e:
-        print(f"Error extracting dominant color: {str(e)}")
+        logger.error(f"Unexpected error in extract_dominant_color: {str(e)}", exc_info=True)
         return 60.0  # Default to green hue
 
 
@@ -134,29 +187,83 @@ def hex_to_hue(hex_color):
     """
     Convert hex color to HSV hue value.
     
+    This function takes a hexadecimal color code and converts it to
+    the corresponding hue value in degrees using HSV color space.
+    
     Args:
         hex_color (str): Hex color code (e.g., '#FF0000' or 'FF0000')
         
     Returns:
         float: Hue value in degrees (0-360)
+        
+    Raises:
+        ValueError: If hex_color is invalid or malformed
+        Exception: For other conversion errors
     """
     try:
+        logger.debug(f"Converting hex color: {hex_color}")
+        
+        # Validate input
+        if not isinstance(hex_color, str):
+            logger.error(f"Invalid input type for hex_color: {type(hex_color)}")
+            raise ValueError("Hex color must be a string")
+        
+        if not hex_color:
+            logger.error("Empty hex color provided")
+            raise ValueError("Empty hex color provided")
+        
         # Remove '#' if present
         hex_color = hex_color.lstrip('#')
         
+        # Validate hex color format
+        if len(hex_color) not in [3, 6]:
+            logger.error(f"Invalid hex color length: {len(hex_color)}")
+            raise ValueError(f"Hex color must be 3 or 6 characters long, got {len(hex_color)}")
+        
+        # Expand 3-character hex to 6-character
+        if len(hex_color) == 3:
+            hex_color = ''.join([c*2 for c in hex_color])
+            logger.debug(f"Expanded 3-char hex to 6-char: {hex_color}")
+        
+        # Validate hex characters
+        if not all(c in '0123456789ABCDEFabcdef' for c in hex_color):
+            logger.error(f"Invalid hex characters in: {hex_color}")
+            raise ValueError("Hex color contains invalid characters")
+        
         # Convert hex to RGB
-        r = int(hex_color[0:2], 16) / 255.0
-        g = int(hex_color[2:4], 16) / 255.0
-        b = int(hex_color[4:6], 16) / 255.0
+        try:
+            r = int(hex_color[0:2], 16) / 255.0
+            g = int(hex_color[2:4], 16) / 255.0
+            b = int(hex_color[4:6], 16) / 255.0
+            logger.debug(f"RGB values: R={r:.3f}, G={g:.3f}, B={b:.3f}")
+        except ValueError as e:
+            logger.error(f"Failed to parse hex color: {str(e)}")
+            raise ValueError(f"Invalid hex color format: {str(e)}")
+        
+        # Validate RGB values
+        if not all(0 <= val <= 1 for val in [r, g, b]):
+            logger.error(f"Invalid RGB values: R={r}, G={g}, B={b}")
+            raise ValueError("RGB values must be between 0 and 1")
         
         # Convert RGB to HSV
-        h, s, v = colorsys.rgb_to_hsv(r, g, b)
+        try:
+            h, s, v = colorsys.rgb_to_hsv(r, g, b)
+            logger.debug(f"HSV values: H={h:.3f}, S={s:.3f}, V={v:.3f}")
+        except Exception as e:
+            logger.error(f"Failed to convert RGB to HSV: {str(e)}")
+            raise ValueError(f"Color space conversion failed: {str(e)}")
         
         # Convert hue from 0-1 range to 0-360 degrees
-        return h * 360
+        result_hue = h * 360
         
+        logger.info(f"Converted hex {hex_color} to hue: {result_hue:.2f}°")
+        return result_hue
+        
+    except ValueError as e:
+        logger.error(f"Validation error in hex_to_hue: {str(e)}")
+        raise
     except Exception as e:
-        print(f"Error converting hex to hue: {str(e)}")
+        logger.error(f"Unexpected error in hex_to_hue: {str(e)}", exc_info=True)
         return 60.0  # Default to green hue
 
 
