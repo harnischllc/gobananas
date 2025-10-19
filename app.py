@@ -2,6 +2,7 @@ from flask import Flask, render_template, request, jsonify
 import os
 import logging
 from logging.handlers import RotatingFileHandler
+from datetime import datetime
 from utils.color_detection import (
     detect_banana_ripeness, 
     extract_dominant_color, 
@@ -38,6 +39,16 @@ def index():
 def about():
     """About page with information about the banana ripeness detection technology"""
     return render_template('about.html')
+
+@app.route('/health')
+def health_check():
+    """
+    Health check endpoint to prevent Render spin-down.
+    
+    Returns:
+        JSON response with status and timestamp
+    """
+    return {'status': 'ok', 'timestamp': datetime.now().isoformat()}
 
 @app.route('/classify', methods=['POST'])
 def classify_banana():
