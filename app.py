@@ -3,6 +3,10 @@ import os
 import logging
 from logging.handlers import RotatingFileHandler
 from datetime import datetime
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
+from dotenv import load_dotenv
+from config import config
 from utils.color_detection import (
     detect_banana_ripeness, 
     extract_dominant_color, 
@@ -11,8 +15,23 @@ from utils.color_detection import (
     estimate_days_until_peak,
     STAGE_INFO
 )
+from utils.validators import validate_uploaded_file, validate_hex_color, ValidationError
 
+# Load environment variables
+load_dotenv()
+
+# Initialize app with config
+config_name = os.environ.get('FLASK_ENV', 'production')
 app = Flask(__name__)
+app.config.from_object(config[config_name])
+
+# Initialize rate limiter
+limiter = Limiter(
+    app=app,
+    key_func=get_remote_address,
+    default_limits=[app.config['RATELIMIT_DEFAULT']],
+    enabled=app.config['RATELIMIT_ENABLED']
+)
 
 # Configure logging
 if not app.debug:
@@ -29,6 +48,26 @@ if not app.debug:
 
 # Configure app logger for development
 app.logger.setLevel(logging.DEBUG)
+
+@app.after_request
+def add_security_headers(response):
+    """Add security headers to all responses"""
+    response.headers['X-Content-Type-Options'] = 'nosniff'
+    response.headers['X-Frame-Options'] = 'DENY'
+    response.headers['X-XSS-Protection'] = '1; mode=block'
+    response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains'
+    
+    # CSP for external resources
+    csp = (
+        "default-src 'self'; "
+        "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; "
+        "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; "
+        "font-src 'self' https://cdnjs.cloudflare.com; "
+        "img-src 'self' data: blob:;"
+    )
+    response.headers['Content-Security-Policy'] = csp
+    
+    return response
 
 @app.route('/')
 def index():
@@ -74,114 +113,39 @@ def health_check():
     }
 
 @app.route('/classify', methods=['POST'])
+@limiter.limit("30 per minute")
 def classify_banana():
-    """
-    Handle both image upload and color picker for banana classification.
-    
-    This endpoint processes either uploaded images or hex color values to determine
-    banana ripeness using computer vision and color analysis.
-    
-    Returns:
-        Rendered result.html template with classification results or error messages.
-    """
+    """Handle both image upload and color picker for banana classification."""
     try:
-        app.logger.info('Classification request received')
-        result = {}
-        
-        # Check for both image and color (shouldn't happen with fixed UI)
+        # Determine input type
         has_image = 'image' in request.files and request.files['image'].filename
-        has_color = 'color' in request.form and request.form['color']
+        has_color = request.form.get('color')
         
-        if has_image and has_color:
-            app.logger.warning('Both image and color provided - using image (UI should prevent this)')
+        if not has_image and not has_color:
+            return render_template('result.html', 
+                error='Please upload an image or select a color')
         
-        # Check if image file is provided
-        if 'image' in request.files and request.files['image'].filename:
-            app.logger.debug('Processing image upload')
+        # Process based on input type
+        if has_image:
             file = request.files['image']
-            
-            # Validate file type
-            allowed_extensions = ('.png', '.jpg', '.jpeg', '.gif', '.bmp')
-            if not file.filename.lower().endswith(allowed_extensions):
-                app.logger.warning(f'Invalid file type attempted: {file.filename}')
-                return render_template('result.html', 
-                                     error='Please upload a valid image file (PNG, JPG, JPEG, GIF, or BMP)')
-            
-            # Validate file size (max 10MB)
-            max_size = 10 * 1024 * 1024  # 10MB
-            file.seek(0, 2)  # Seek to end
-            file_size = file.tell()
-            file.seek(0)  # Reset to beginning
-            
-            if file_size > max_size:
-                app.logger.warning(f'File too large: {file_size} bytes')
-                return render_template('result.html', 
-                                     error='Image file is too large. Please select an image smaller than 10MB.')
-            
-            # Read image data
             try:
-                image_data = file.read()
-                file.seek(0)  # Reset file pointer
-                app.logger.debug(f'Successfully read image data: {len(image_data)} bytes')
-            except Exception as e:
-                app.logger.error(f'Error reading image file: {str(e)}')
-                return render_template('result.html', 
-                                     error='Error reading image file. Please try again.')
-            
-            # Extract dominant hue from image
-            try:
-                hue = extract_dominant_color(image_data)
-                app.logger.info(f'Extracted hue from image: {hue:.2f}°')
-            except Exception as e:
-                app.logger.error(f'Error extracting color from image: {str(e)}')
-                return render_template('result.html', 
-                                     error='Error analyzing image colors. Please try a different image.')
-            
-        # Check if color hex value is provided
-        elif 'color' in request.form and request.form['color']:
-            app.logger.debug('Processing color picker input')
-            hex_color = request.form['color']
-            
-            # Validate hex color format
-            if not is_valid_hex_color(hex_color):
-                app.logger.warning(f'Invalid hex color format: {hex_color}')
-                return render_template('result.html', 
-                                     error='Please provide a valid hex color (e.g., #FF0000 or FF0000)')
-            
-            # Convert hex color to hue
-            try:
-                hue = hex_to_hue(hex_color)
-                app.logger.info(f'Converted hex color {hex_color} to hue: {hue:.2f}°')
-            except Exception as e:
-                app.logger.error(f'Error converting hex color: {str(e)}')
-                return render_template('result.html', 
-                                     error='Error processing color value. Please try again.')
-            
+                validate_uploaded_file(file)
+                ripeness_result = detect_banana_ripeness(file)
+                hue = ripeness_result['dominant_hue']
+            except ValidationError as e:
+                return render_template('result.html', error=str(e))
         else:
-            app.logger.warning('No valid input provided (image or color)')
-            return render_template('result.html', 
-                                 error='Please provide either an image file or a hex color value')
+            try:
+                hex_color = validate_hex_color(request.form.get('color'))
+                hue = hex_to_hue(hex_color)
+            except ValidationError as e:
+                return render_template('result.html', error=str(e))
         
-        # Validate hue value
-        if not isinstance(hue, (int, float)) or hue < 0 or hue > 360:
-            app.logger.error(f'Invalid hue value: {hue}')
-            return render_template('result.html', 
-                                 error='Invalid color analysis result. Please try again.')
+        # Classify
+        stage = hue_to_stage(hue)
+        stage_info = STAGE_INFO.get(stage, "Unknown stage")
+        days_until_peak = estimate_days_until_peak(stage)
         
-        # Classify the banana based on hue
-        try:
-            stage = hue_to_stage(hue)
-            stage_info = STAGE_INFO.get(stage, "Unknown stage")
-            days_until_peak = estimate_days_until_peak(stage)
-            
-            app.logger.info(f'Classification result: Stage {stage}, Days until peak: {days_until_peak}')
-            
-        except Exception as e:
-            app.logger.error(f'Error in classification logic: {str(e)}')
-            return render_template('result.html', 
-                                 error='Error in classification process. Please try again.')
-        
-        # Prepare result data
         result = {
             'stage': stage,
             'stage_info': stage_info,
@@ -190,114 +154,48 @@ def classify_banana():
             'success': True
         }
         
-        app.logger.info('Classification completed successfully')
+        app.logger.info(f'Classification success: Stage {stage}')
         return render_template('result.html', result=result)
     
     except Exception as e:
-        app.logger.error(f'Unexpected error in classification: {str(e)}', exc_info=True)
+        app.logger.error(f'Unexpected error: {str(e)}', exc_info=True)
         return render_template('result.html', 
-                             error='An unexpected error occurred. Please try again later.')
+            error='An unexpected error occurred. Please try again.')
 
 @app.route('/api/classify', methods=['POST'])
+@limiter.limit("60 per minute")
 def api_classify_banana():
-    """
-    API endpoint for banana classification returning JSON responses.
-    
-    This endpoint provides programmatic access to the banana ripeness detection
-    functionality, returning structured JSON data instead of rendered templates.
-    
-    Returns:
-        JSON response with classification results or error messages.
-    """
+    """API endpoint for banana classification returning JSON responses."""
     try:
-        app.logger.info('API classification request received')
-        result = {}
-        
-        # Check for both image and color (shouldn't happen with fixed UI)
+        # Determine input type
         has_image = 'image' in request.files and request.files['image'].filename
         has_color = (request.is_json and 'color' in request.json and request.json['color']) or ('color' in request.form and request.form['color'])
         
-        if has_image and has_color:
-            app.logger.warning('API: Both image and color provided - using image (UI should prevent this)')
-        
-        # Check if image file is provided
-        if 'image' in request.files and request.files['image'].filename:
-            app.logger.debug('Processing API image upload')
-            file = request.files['image']
-            
-            # Validate file type
-            allowed_extensions = ('.png', '.jpg', '.jpeg', '.gif', '.bmp')
-            if not file.filename.lower().endswith(allowed_extensions):
-                app.logger.warning(f'API: Invalid file type attempted: {file.filename}')
-                return jsonify({'error': 'Please upload a valid image file (PNG, JPG, JPEG, GIF, or BMP)'}), 400
-            
-            # Validate file size (max 10MB)
-            max_size = 10 * 1024 * 1024  # 10MB
-            file.seek(0, 2)  # Seek to end
-            file_size = file.tell()
-            file.seek(0)  # Reset to beginning
-            
-            if file_size > max_size:
-                app.logger.warning(f'API: File too large: {file_size} bytes')
-                return jsonify({'error': 'Image file is too large. Please select an image smaller than 10MB.'}), 400
-            
-            # Read image data
-            try:
-                image_data = file.read()
-                file.seek(0)  # Reset file pointer
-                app.logger.debug(f'API: Successfully read image data: {len(image_data)} bytes')
-            except Exception as e:
-                app.logger.error(f'API: Error reading image file: {str(e)}')
-                return jsonify({'error': 'Error reading image file. Please try again.'}), 500
-            
-            # Extract dominant hue from image
-            try:
-                hue = extract_dominant_color(image_data)
-                app.logger.info(f'API: Extracted hue from image: {hue:.2f}°')
-            except Exception as e:
-                app.logger.error(f'API: Error extracting color from image: {str(e)}')
-                return jsonify({'error': 'Error analyzing image colors. Please try a different image.'}), 500
-            
-        # Check if color hex value is provided in JSON
-        elif request.is_json and 'color' in request.json and request.json['color']:
-            app.logger.debug('Processing API color picker input')
-            hex_color = request.json['color']
-            
-            # Validate hex color format
-            if not is_valid_hex_color(hex_color):
-                app.logger.warning(f'API: Invalid hex color format: {hex_color}')
-                return jsonify({'error': 'Please provide a valid hex color (e.g., #FF0000 or FF0000)'}), 400
-            
-            # Convert hex color to hue
-            try:
-                hue = hex_to_hue(hex_color)
-                app.logger.info(f'API: Converted hex color {hex_color} to hue: {hue:.2f}°')
-            except Exception as e:
-                app.logger.error(f'API: Error converting hex color: {str(e)}')
-                return jsonify({'error': 'Error processing color value. Please try again.'}), 500
-            
-        else:
-            app.logger.warning('API: No valid input provided (image or color)')
+        if not has_image and not has_color:
             return jsonify({'error': 'Please provide either an image file or a hex color value'}), 400
         
-        # Validate hue value
-        if not isinstance(hue, (int, float)) or hue < 0 or hue > 360:
-            app.logger.error(f'API: Invalid hue value: {hue}')
-            return jsonify({'error': 'Invalid color analysis result. Please try again.'}), 500
+        # Process based on input type
+        if has_image:
+            file = request.files['image']
+            try:
+                validate_uploaded_file(file)
+                ripeness_result = detect_banana_ripeness(file)
+                hue = ripeness_result['dominant_hue']
+            except ValidationError as e:
+                return jsonify({'error': str(e)}), 400
+        else:
+            try:
+                hex_color = request.json.get('color') if request.is_json else request.form.get('color')
+                hex_color = validate_hex_color(hex_color)
+                hue = hex_to_hue(hex_color)
+            except ValidationError as e:
+                return jsonify({'error': str(e)}), 400
         
-        # Classify the banana based on hue
-        try:
-            stage = hue_to_stage(hue)
-            stage_info = STAGE_INFO.get(stage, "Unknown stage")
-            days_until_peak = estimate_days_until_peak(stage)
-            
-            app.logger.info(f'API: Classification result: Stage {stage}, Days until peak: {days_until_peak}')
-            
-        except Exception as e:
-            app.logger.error(f'API: Error in classification logic: {str(e)}')
-            return jsonify({'error': 'Error in classification process. Please try again.'}), 500
+        # Classify
+        stage = hue_to_stage(hue)
+        stage_info = STAGE_INFO.get(stage, "Unknown stage")
+        days_until_peak = estimate_days_until_peak(stage)
         
-        # Prepare result data
         result = {
             'stage': stage,
             'stage_info': stage_info,
@@ -306,12 +204,12 @@ def api_classify_banana():
             'success': True
         }
         
-        app.logger.info('API: Classification completed successfully')
+        app.logger.info(f'API Classification success: Stage {stage}')
         return jsonify(result)
     
     except Exception as e:
-        app.logger.error(f'API: Unexpected error in classification: {str(e)}', exc_info=True)
-        return jsonify({'error': 'An unexpected error occurred. Please try again later.'}), 500
+        app.logger.error(f'API Unexpected error: {str(e)}', exc_info=True)
+        return jsonify({'error': 'An unexpected error occurred. Please try again.'}), 500
 
 @app.route('/detect', methods=['POST'])
 def detect_ripeness():
@@ -350,31 +248,6 @@ def api_detect_ripeness():
     
     except Exception as e:
         return jsonify({'error': str(e)}), 500
-
-def is_valid_hex_color(hex_color):
-    """
-    Validate if a string is a valid hex color.
-    
-    Args:
-        hex_color (str): Hex color string to validate
-        
-    Returns:
-        bool: True if valid hex color, False otherwise
-    """
-    try:
-        if not isinstance(hex_color, str):
-            return False
-            
-        hex_color = hex_color.lstrip('#')
-        
-        # Check if it's 3 or 6 characters long and contains only valid hex characters
-        if len(hex_color) in [3, 6] and all(c in '0123456789ABCDEFabcdef' for c in hex_color):
-            return True
-        
-        return False
-    except Exception as e:
-        app.logger.error(f'Error validating hex color: {str(e)}')
-        return False
 
 if __name__ == '__main__':
     # Configure for production

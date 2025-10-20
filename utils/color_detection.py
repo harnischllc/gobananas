@@ -12,31 +12,10 @@ from PIL import Image
 import io
 import colorsys
 import logging
+from utils.constants import STAGE_INFO, DURATION_RANGES, HUE_RANGES, RECOMMENDATIONS
 
 # Set up logging
 logger = logging.getLogger(__name__)
-
-# Duration ranges for each stage (min_days, max_days)
-DURATION_RANGES = {
-    1: (1, 4),   # Stage 1: Green
-    2: (1, 3),   # Stage 2: Light Green
-    3: (1, 3),   # Stage 3: Yellowish
-    4: (1, 3),   # Stage 4: More Yellow
-    5: (1, 3),   # Stage 5: Yellow with Green Tips
-    6: (1, 3),   # Stage 6: Yellow
-    7: (2, 5)    # Stage 7: Yellow with Brown Flecks
-}
-
-# Stage descriptions for banana ripeness
-STAGE_INFO = {
-    1: "Green - Entirely green, firm and starchy. High in resistant starch.",
-    2: "Light Green - Breaking toward yellow. Still firm and less sweet.",
-    3: "Yellowish - Minimal green. Begins to develop sweetness.",
-    4: "More Yellow - Mostly yellow with some green. Starches converting to sugars.",
-    5: "Yellow with Green Tips - Ideal for retail. Peak for purchase.",
-    6: "Yellow - Peak eating quality. Aromatic and sweet.",
-    7: "Yellow with Brown Flecks - Overripe. Best for baking or smoothies."
-}
 
 
 def estimate_days_until_peak(stage):
@@ -94,7 +73,7 @@ def hue_to_stage(hue):
         return 3
 
 
-def extract_dominant_color(image_bytes):
+def extract_dominant_color(image_bytes, sample_rate=10):
     """
     Extract the dominant hue from an image using color analysis.
     
@@ -104,6 +83,7 @@ def extract_dominant_color(image_bytes):
     
     Args:
         image_bytes (bytes): Image data as bytes
+        sample_rate (int): Sample every Nth pixel (higher = faster, less accurate)
         
     Returns:
         float: Dominant hue value in degrees (0-360)
@@ -120,15 +100,18 @@ def extract_dominant_color(image_bytes):
             logger.error("Empty image data provided")
             raise ValueError("Empty image data provided")
         
-        # Open image from bytes
-        try:
-            image = Image.open(io.BytesIO(image_bytes))
-            logger.debug(f"Successfully opened image: {image.size}, mode: {image.mode}")
-        except Exception as e:
-            logger.error(f"Failed to open image: {str(e)}")
-            raise ValueError(f"Invalid image format: {str(e)}")
+        # Use PIL for initial processing (more memory efficient)
+        image = Image.open(io.BytesIO(image_bytes))
         
-        # Convert to RGB if necessary
+        # Resize if too large
+        max_dimension = 800
+        if max(image.size) > max_dimension:
+            ratio = max_dimension / max(image.size)
+            new_size = tuple(int(dim * ratio) for dim in image.size)
+            image = image.resize(new_size, Image.LANCZOS)
+            logger.debug(f'Resized image to {new_size}')
+        
+        # Convert to RGB if needed
         if image.mode != 'RGB':
             logger.debug(f"Converting image from {image.mode} to RGB")
             image = image.convert('RGB')
@@ -141,18 +124,21 @@ def extract_dominant_color(image_bytes):
             logger.error(f"Failed to convert image to HSV: {str(e)}")
             raise ValueError(f"Color space conversion failed: {str(e)}")
         
-        # Get pixel data
-        pixels = list(hsv_image.getdata())
-        logger.debug(f"Extracted {len(pixels)} pixels for analysis")
+        # Convert to numpy array
+        img_array = np.array(hsv_image)
         
-        if not pixels:
+        # Sample pixels
+        pixels = img_array[::sample_rate, ::sample_rate].reshape(-1, 3)
+        logger.debug(f"Sampled {len(pixels)} pixels for analysis")
+        
+        if not pixels.size:
             logger.error("No pixels found in image")
             raise ValueError("No pixel data found in image")
         
         # Extract hue values (first channel of HSV)
-        hue_values = [pixel[0] for pixel in pixels if len(pixel) >= 3]
+        hue_values = pixels[:, 0]
         
-        if not hue_values:
+        if not hue_values.size:
             logger.error("No valid hue values found")
             raise ValueError("No valid color data found in image")
         
@@ -326,92 +312,32 @@ def detect_banana_ripeness(image_file):
 
 
 def get_stage_recommendations(stage):
-    """
-    Get recommendations based on banana ripeness stage.
-    
-    Args:
-        stage (int): Banana ripeness stage (1-7)
-        
-    Returns:
-        list: List of recommendations for the current stage
-    """
-    recommendations = {
-        1: [
-            'Wait 3-4 days for optimal ripeness',
-            'Store at room temperature',
-            'Avoid refrigeration at this stage',
-            'Perfect for cooking if you prefer less sweet bananas'
-        ],
-        2: [
-            'Wait 2-3 days for better sweetness',
-            'Store at room temperature',
-            'Good for cooking or eating if you prefer less sweet'
-        ],
-        3: [
-            'Wait 1-2 days for peak ripeness',
-            'Good for eating now if you prefer less sweet',
-            'Perfect for cooking'
-        ],
-        4: [
-            'Wait 1 day for optimal sweetness',
-            'Good for eating now',
-            'Great for smoothies'
-        ],
-        5: [
-            'Perfect for purchase and eating',
-            'Peak retail stage',
-            'Good for 1-2 days'
-        ],
-        6: [
-            'Peak eating quality!',
-            'Best for fresh consumption',
-            'Use within 1-2 days',
-            'Perfect for smoothies'
-        ],
-        7: [
-            'Excellent for baking banana bread',
-            'Perfect for smoothies and shakes',
-            'Great for natural sweetener in baking',
-            'Freeze for future use'
-        ]
-    }
-    
-    return recommendations.get(stage, ['Unable to provide recommendations'])
+    """Get recommendations based on banana ripeness stage."""
+    return RECOMMENDATIONS.get(stage, ['Please try with a clearer image'])
 
 
 def calculate_stage_confidence(hue, stage):
     """
-    Calculate confidence level based on how well the hue matches the expected stage range.
+    Calculate confidence score based on hue position within stage range.
     
     Args:
-        hue (float): Dominant hue value
-        stage (int): Determined stage
+        hue (float): Detected hue value
+        stage (int): Determined ripeness stage
         
     Returns:
-        float: Confidence value between 0.0 and 1.0
+        float: Confidence percentage (0-100)
     """
-    # Define hue ranges for each stage
-    stage_hue_ranges = {
-        1: (60, 120),   # Green
-        2: (50, 60),    # Light Green
-        3: (40, 50),    # Yellowish
-        4: (30, 40),    # More Yellow
-        5: (25, 30),    # Yellow with Green Tips
-        6: (20, 25),    # Yellow
-        7: (0, 20)      # Brown flecks
-    }
+    if stage not in HUE_RANGES:
+        return 50.0
     
-    if stage not in stage_hue_ranges:
-        return 0.5  # Default confidence
+    min_hue, max_hue = HUE_RANGES[stage]
+    range_size = max_hue - min_hue
     
-    min_hue, max_hue = stage_hue_ranges[stage]
+    if range_size == 0:
+        return 100.0
     
-    # Calculate how close the hue is to the center of the range
-    center_hue = (min_hue + max_hue) / 2
-    range_width = max_hue - min_hue
+    # Distance from range boundaries
+    distance_from_edges = min(abs(hue - min_hue), abs(hue - max_hue))
+    confidence = (1 - (distance_from_edges / range_size)) * 100
     
-    # Distance from center as percentage of range width
-    distance_from_center = abs(hue - center_hue)
-    confidence = max(0.3, 1.0 - (distance_from_center / (range_width / 2)))
-    
-    return min(1.0, confidence)
+    return round(max(50.0, min(100.0, confidence)), 1)
