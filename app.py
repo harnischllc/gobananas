@@ -33,7 +33,19 @@ app.logger.setLevel(logging.DEBUG)
 @app.route('/')
 def index():
     """Main page for banana ripeness detection"""
+    app.logger.info('Main page accessed')
     return render_template('index.html')
+
+@app.route('/ping')
+def ping():
+    """
+    Simple ping endpoint for quick health checks.
+    
+    Returns:
+        Simple text response
+    """
+    app.logger.info('Ping endpoint accessed')
+    return 'pong', 200
 
 @app.route('/about')
 def about():
@@ -48,7 +60,13 @@ def health_check():
     Returns:
         JSON response with status and timestamp
     """
-    return {'status': 'ok', 'timestamp': datetime.now().isoformat()}
+    app.logger.info('Health check endpoint accessed')
+    return {
+        'status': 'ok', 
+        'timestamp': datetime.now().isoformat(),
+        'service': 'Go Bananas',
+        'version': '1.0.0'
+    }
 
 @app.route('/classify', methods=['POST'])
 def classify_banana():
