@@ -72,67 +72,45 @@
                                 </span>
                             </div>
 
-                            <!-- Color Picker Option -->
+                            <!-- Banana Ripeness Slider -->
                             <div class="mb-4">
-                                <h5 class="mb-3">🎨 Pick Banana Color</h5>
-                                <p class="text-muted small mb-3">Select the color that best matches your banana</p>
+                                <h5 class="mb-3">🍌 Select Banana Ripeness</h5>
+                                <p class="text-muted small mb-3">Slide to match your banana's ripeness level</p>
                                 
-                                <!-- Hidden input to store selected color -->
+                                <!-- Hidden inputs to store selected values -->
                                 <input type="hidden" id="colorPicker" name="color" value="#9ACD32">
+                                <input type="hidden" id="bananaStage" name="stage" value="3">
                                 
-                                <!-- Banana Color Palette Grid -->
-                                <div class="banana-color-grid">
-                                    <!-- Stage 1-2: Green -->
-                                    <button type="button" class="banana-color-btn" data-color="#228B22" data-stage="Stage 1-2: Green">
-                                        <div class="color-preview" style="background-color: #228B22;"></div>
-                                        <span class="color-label">Dark Green</span>
-                                    </button>
+                                <!-- Banana Slider Container -->
+                                <div class="banana-slider-container">
+                                    <!-- Banana Images Row -->
+                                    <div class="banana-images-row">
+                                        <div class="banana-sprite banana-1" data-stage="1" data-color="#228B22"></div>
+                                        <div class="banana-sprite banana-2" data-stage="2" data-color="#32CD32"></div>
+                                        <div class="banana-sprite banana-3 active" data-stage="3" data-color="#9ACD32"></div>
+                                        <div class="banana-sprite banana-4" data-stage="4" data-color="#ADFF2F"></div>
+                                        <div class="banana-sprite banana-5" data-stage="5" data-color="#FFD700"></div>
+                                        <div class="banana-sprite banana-6" data-stage="6" data-color="#FFA500"></div>
+                                    </div>
                                     
-                                    <button type="button" class="banana-color-btn" data-color="#32CD32" data-stage="Stage 2: Light Green">
-                                        <div class="color-preview" style="background-color: #32CD32;"></div>
-                                        <span class="color-label">Green</span>
-                                    </button>
+                                    <!-- Slider -->
+                                    <div class="slider-container">
+                                        <input type="range" id="bananaSlider" class="banana-slider" 
+                                               min="1" max="6" value="3" step="1">
+                                        <div class="slider-labels">
+                                            <span>Green</span>
+                                            <span>Ripe</span>
+                                            <span>Overripe</span>
+                                        </div>
+                                    </div>
                                     
-                                    <!-- Stage 3: Yellowish Green -->
-                                    <button type="button" class="banana-color-btn active" data-color="#9ACD32" data-stage="Stage 3: Yellowish">
-                                        <div class="color-preview" style="background-color: #9ACD32;"></div>
-                                        <span class="color-label">Yellow-Green</span>
-                                    </button>
-                                    
-                                    <button type="button" class="banana-color-btn" data-color="#ADFF2F" data-stage="Stage 3-4: More Yellow">
-                                        <div class="color-preview" style="background-color: #ADFF2F;"></div>
-                                        <span class="color-label">Light Yellow</span>
-                                    </button>
-                                    
-                                    <!-- Stage 4-5: Yellow -->
-                                    <button type="button" class="banana-color-btn" data-color="#FFFF00" data-stage="Stage 4-5: Yellow">
-                                        <div class="color-preview" style="background-color: #FFFF00;"></div>
-                                        <span class="color-label">Bright Yellow</span>
-                                    </button>
-                                    
-                                    <button type="button" class="banana-color-btn" data-color="#FFD700" data-stage="Stage 5-6: Golden Yellow">
-                                        <div class="color-preview" style="background-color: #FFD700;"></div>
-                                        <span class="color-label">Golden</span>
-                                    </button>
-                                    
-                                    <!-- Stage 6-7: Ripe/Overripe -->
-                                    <button type="button" class="banana-color-btn" data-color="#FFA500" data-stage="Stage 6-7: Orange-Yellow">
-                                        <div class="color-preview" style="background-color: #FFA500;"></div>
-                                        <span class="color-label">Orange-Yellow</span>
-                                    </button>
-                                    
-                                    <button type="button" class="banana-color-btn" data-color="#D2691E" data-stage="Stage 7: Brown Flecks">
-                                        <div class="color-preview" style="background-color: #D2691E;"></div>
-                                        <span class="color-label">Brown</span>
-                                    </button>
-                                </div>
-                                
-                                <!-- Selected Color Display -->
-                                <div class="mt-3 selected-color-display">
-                                    <div class="selected-swatch" id="selectedSwatch" style="background-color: #9ACD32;"></div>
-                                    <div class="selected-info">
-                                        <strong id="selectedStage">Stage 3: Yellowish</strong><br>
-                                        <span class="text-muted" id="selectedHex">#9ACD32</span>
+                                    <!-- Selected Banana Display -->
+                                    <div class="selected-banana-display">
+                                        <div class="selected-banana-sprite" id="selectedBananaSprite"></div>
+                                        <div class="selected-banana-info">
+                                            <strong id="selectedBananaStage">Stage 3: Yellowish</strong><br>
+                                            <span class="text-muted" id="selectedBananaDescription">Perfect for eating fresh</span>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -468,5 +446,124 @@
             }
         }
     </style>
+
+    <!-- Add to bottom of index.html, before closing </body> -->
+    <div id="bananaContainer" class="banana-animation-container"></div>
+
+    <style>
+    .banana-animation-container {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+        z-index: 9999;
+        overflow: hidden;
+    }
+
+    .floating-banana {
+        position: absolute;
+        font-size: 2rem;
+        animation: float-fall linear forwards;
+        pointer-events: none;
+    }
+
+    @keyframes float-fall {
+        0% {
+            transform: translateY(-100px) rotate(0deg);
+            opacity: 0.8;
+        }
+        100% {
+            transform: translateY(100vh) rotate(360deg);
+            opacity: 0;
+        }
+    }
+
+    .confetti-banana {
+        position: absolute;
+        font-size: 1.5rem;
+        animation: confetti-burst 1.5s ease-out forwards;
+        pointer-events: none;
+    }
+
+    @keyframes confetti-burst {
+        0% {
+            transform: translate(0, 0) rotate(0deg) scale(1);
+            opacity: 1;
+        }
+        100% {
+            transform: translate(var(--x), var(--y)) rotate(720deg) scale(0.5);
+            opacity: 0;
+        }
+    }
+    </style>
+
+    <script>
+    // Floating bananas on page load
+    function createFloatingBananas() {
+        const container = document.getElementById('bananaContainer');
+        const bananaEmojis = ['🍌', '🍌', '🍌'];
+        
+        // Create 5 floating bananas
+        for (let i = 0; i < 5; i++) {
+            setTimeout(() => {
+                const banana = document.createElement('div');
+                banana.className = 'floating-banana';
+                banana.textContent = bananaEmojis[Math.floor(Math.random() * bananaEmojis.length)];
+                banana.style.left = Math.random() * 100 + '%';
+                banana.style.animationDuration = (5 + Math.random() * 3) + 's';
+                banana.style.animationDelay = Math.random() * 2 + 's';
+                container.appendChild(banana);
+                
+                // Remove after animation
+                setTimeout(() => banana.remove(), 10000);
+            }, i * 1000);
+        }
+    }
+
+    // Confetti burst on successful analysis
+    function triggerBananaConfetti() {
+        const container = document.getElementById('bananaContainer');
+        const centerX = window.innerWidth / 2;
+        const centerY = window.innerHeight / 2;
+        
+        for (let i = 0; i < 12; i++) {
+            const banana = document.createElement('div');
+            banana.className = 'confetti-banana';
+            banana.textContent = '🍌';
+            
+            const angle = (i / 12) * Math.PI * 2;
+            const distance = 200;
+            const x = Math.cos(angle) * distance;
+            const y = Math.sin(angle) * distance;
+            
+            banana.style.left = centerX + 'px';
+            banana.style.top = centerY + 'px';
+            banana.style.setProperty('--x', x + 'px');
+            banana.style.setProperty('--y', y + 'px');
+            banana.style.animationDelay = (i * 0.05) + 's';
+            
+            container.appendChild(banana);
+            setTimeout(() => banana.remove(), 2000);
+        }
+    }
+
+    // Start animations on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        createFloatingBananas();
+        
+        // Repeat floating bananas every 15 seconds
+        setInterval(createFloatingBananas, 15000);
+        
+        // Trigger confetti on form submission
+        const form = document.getElementById('bananaForm');
+        if (form) {
+            form.addEventListener('submit', function(e) {
+                triggerBananaConfetti();
+            });
+        }
+    });
+    </script>
 </body>
 </html>

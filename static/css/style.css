@@ -791,33 +791,221 @@ h1, h2, h3, h4, h5, h6 {
     font-size: 0.875rem;
 }
 
+/* Banana Slider Styles */
+.banana-slider-container {
+    background: rgba(248, 249, 250, 0.8);
+    border-radius: 20px;
+    padding: 2rem;
+    border: 2px solid #E9ECEF;
+    transition: all 0.3s ease;
+}
+
+.banana-slider-container:hover {
+    background: var(--white);
+    box-shadow: 0 10px 25px var(--shadow-light);
+}
+
+.banana-images-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+    gap: 1rem;
+}
+
+.banana-sprite {
+    width: 60px;
+    height: 60px;
+    background-image: url('/static/images/bananas.png');
+    background-size: 360px 60px; /* 6 bananas × 60px each */
+    background-repeat: no-repeat;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border-radius: 8px;
+    border: 3px solid transparent;
+    position: relative;
+}
+
+.banana-sprite:hover {
+    transform: scale(1.1);
+    border-color: var(--banana-yellow);
+    box-shadow: 0 8px 20px rgba(255, 225, 53, 0.3);
+}
+
+.banana-sprite.active {
+    border-color: var(--banana-yellow);
+    background-color: rgba(255, 225, 53, 0.1);
+    box-shadow: 0 8px 20px rgba(255, 225, 53, 0.3);
+    transform: scale(1.05);
+}
+
+/* CSS Sprite positioning for each banana stage */
+.banana-1 { background-position: 0 0; }      /* Green */
+.banana-2 { background-position: -60px 0; }   /* Light Green */
+.banana-3 { background-position: -120px 0; } /* Yellowish */
+.banana-4 { background-position: -180px 0; } /* Light Yellow */
+.banana-5 { background-position: -240px 0; } /* Golden */
+.banana-6 { background-position: -300px 0; } /* Overripe */
+
+.slider-container {
+    margin: 2rem 0;
+    position: relative;
+}
+
+.banana-slider {
+    width: 100%;
+    height: 8px;
+    border-radius: 4px;
+    background: linear-gradient(to right, 
+        #228B22 0%, 
+        #32CD32 20%, 
+        #9ACD32 40%, 
+        #ADFF2F 60%, 
+        #FFD700 80%, 
+        #FFA500 100%);
+    outline: none;
+    -webkit-appearance: none;
+    appearance: none;
+    cursor: pointer;
+}
+
+.banana-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: var(--white);
+    border: 3px solid var(--banana-yellow);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.banana-slider::-webkit-slider-thumb:hover {
+    transform: scale(1.2);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
+}
+
+.banana-slider::-moz-range-thumb {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: var(--white);
+    border: 3px solid var(--banana-yellow);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.banana-slider::-moz-range-thumb:hover {
+    transform: scale(1.2);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
+}
+
+.slider-labels {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 0.5rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--gray-medium);
+}
+
+.selected-banana-display {
+    display: flex;
+    align-items: center;
+    padding: 1.5rem;
+    background: rgba(248, 249, 250, 0.8);
+    border-radius: 15px;
+    border: 2px solid #E9ECEF;
+    margin-top: 1rem;
+    transition: all 0.3s ease;
+}
+
+.selected-banana-display:hover {
+    background: var(--white);
+    box-shadow: 0 5px 15px var(--shadow-light);
+}
+
+.selected-banana-sprite {
+    width: 80px;
+    height: 80px;
+    background-image: url('/static/images/bananas.png');
+    background-size: 480px 80px; /* 6 bananas × 80px each */
+    background-repeat: no-repeat;
+    background-position: -160px 0; /* Default to stage 3 */
+    margin-right: 1.5rem;
+    border-radius: 10px;
+    border: 4px solid var(--white);
+    box-shadow: 0 5px 15px var(--shadow-light);
+    flex-shrink: 0;
+    transition: all 0.3s ease;
+}
+
+.selected-banana-sprite:hover {
+    transform: scale(1.05);
+    box-shadow: 0 8px 25px var(--shadow-medium);
+}
+
+.selected-banana-info strong {
+    color: var(--gray-dark);
+    font-size: 1.1rem;
+    display: block;
+    margin-bottom: 0.25rem;
+}
+
+.selected-banana-info .text-muted {
+    font-size: 0.9rem;
+}
+
 /* Mobile Responsive */
 @media (max-width: 768px) {
-    .banana-color-grid {
-        grid-template-columns: repeat(2, 1fr);
-        gap: 10px;
+    .banana-slider-container {
+        padding: 1.5rem;
     }
     
-    .banana-color-btn {
-        padding: 10px;
+    .banana-images-row {
+        gap: 0.5rem;
+        margin-bottom: 1.5rem;
     }
     
-    .banana-color-btn .color-preview {
-        width: 40px;
-        height: 40px;
+    .banana-sprite {
+        width: 45px;
+        height: 45px;
+        background-size: 270px 45px; /* 6 bananas × 45px each */
     }
     
-    .banana-color-btn .color-label {
-        font-size: 0.7rem;
-    }
+    /* Adjust sprite positions for smaller size */
+    .banana-1 { background-position: 0 0; }
+    .banana-2 { background-position: -45px 0; }
+    .banana-3 { background-position: -90px 0; }
+    .banana-4 { background-position: -135px 0; }
+    .banana-5 { background-position: -180px 0; }
+    .banana-6 { background-position: -225px 0; }
     
-    .selected-color-display {
+    .selected-banana-display {
         flex-direction: column;
         text-align: center;
+        padding: 1rem;
     }
     
-    .selected-swatch {
+    .selected-banana-sprite {
         margin-right: 0;
         margin-bottom: 1rem;
+        width: 60px;
+        height: 60px;
+        background-size: 360px 60px; /* 6 bananas × 60px each */
+        background-position: -120px 0; /* Default to stage 3 */
+    }
+    
+    .banana-slider::-webkit-slider-thumb {
+        width: 28px;
+        height: 28px;
+    }
+    
+    .banana-slider::-moz-range-thumb {
+        width: 28px;
+        height: 28px;
     }
 }

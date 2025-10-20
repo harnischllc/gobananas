@@ -58,7 +58,7 @@
 
                             <!-- Days Until Peak -->
                             <div class="row mb-4">
-                                <div class="col-md-6">
+                                <div class="col-12">
                                     <div class="info-card">
                                         <div class="info-icon">
                                             <i class="fas fa-clock fa-2x text-warning"></i>
@@ -73,20 +73,10 @@
                                         </div>
                                     </div>
                                 </div>
-                                <div class="col-md-6">
-                                    <div class="info-card">
-                                        <div class="info-icon">
-                                            <i class="fas fa-palette fa-2x text-primary"></i>
-                                        </div>
-                                        <div class="info-content">
-                                            <h6>Detected Hue</h6>
-                                            <p class="mb-0"><strong>{{ "%.1f"|format(result.hue) }}°</strong> (for debugging)</p>
-                                        </div>
-                                    </div>
-                                </div>
                             </div>
 
-                            <!-- Color Swatch -->
+                            <!-- Color Swatch - Commented out as per requirements -->
+                            <!--
                             <div class="text-center mb-4">
                                 <h5><i class="fas fa-eye me-2"></i>Detected Color</h5>
                                 <div class="detected-color-swatch">
@@ -97,6 +87,7 @@
                                     </div>
                                 </div>
                             </div>
+                            -->
 
                             <!-- Recommendations -->
                             {% if result.recommendations %}
@@ -211,6 +202,52 @@
                     </div>
                 {% endif %}
 
+                <!-- Quick Color Guide -->
+                <div class="card mt-4">
+                    <div class="card-body">
+                        <h5 class="card-title">🌈 Banana Color Guide</h5>
+                        <div class="row text-center">
+                            <div class="col-md-3 col-6 mb-3">
+                                <div class="color-guide-item">
+                                    <div class="color-circle" style="background-color: #228B22; cursor: pointer;"></div>
+                                    <small>Stage 1-2<br>Green</small>
+                                </div>
+                            </div>
+                            <div class="col-md-3 col-6 mb-3">
+                                <div class="color-guide-item">
+                                    <div class="color-circle" style="background-color: #9ACD32; cursor: pointer;"></div>
+                                    <small>Stage 3-4<br>Light Green</small>
+                                </div>
+                            </div>
+                            <div class="col-md-3 col-6 mb-3">
+                                <div class="color-guide-item">
+                                    <div class="color-circle" style="background-color: #FFD700; cursor: pointer;"></div>
+                                    <small>Stage 5-6<br>Yellow</small>
+                                </div>
+                            </div>
+                            <div class="col-md-3 col-6 mb-3">
+                                <div class="color-guide-item">
+                                    <div class="color-circle" style="background-color: #D2691E; cursor: pointer;"></div>
+                                    <small>Stage 7<br>Brown</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Recent Analyses (optional - remove if not needed) -->
+                <div class="card mt-4" id="recentCard" style="display:none;">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <h5 class="card-title mb-0">🕒 Recent Analyses</h5>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" id="clearHistoryBtn">Clear</button>
+                        </div>
+                        <div id="recentList" class="recent-list row g-3">
+                            <!-- Rendered by JS -->
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Action Buttons -->
                 <div class="text-center mb-5">
                     <a href="/" class="btn btn-warning btn-lg me-3">
@@ -246,15 +283,99 @@
                 const entry = {
                     stage: {{ result.stage if result.stage is defined else 0 }},
                     hue: {{ result.hue if result.hue is defined else 60 }},
-                    timestamp: Date.now()
+                    timestamp: Date.now(),
+                    stageInfo: {{ result.stage_info | tojson if result.stage_info else 'null' }}
                 };
                 const existing = JSON.parse(localStorage.getItem(historyKey) || '[]');
                 existing.unshift(entry);
                 const pruned = existing.slice(0, 10);
                 localStorage.setItem(historyKey, JSON.stringify(pruned));
                 {% endif %}
+                
+                // Display recent analyses
+                displayRecentAnalyses();
+                
+                // Setup clear history button
+                const clearHistoryBtn = document.getElementById('clearHistoryBtn');
+                if (clearHistoryBtn) {
+                    clearHistoryBtn.addEventListener('click', clearHistory);
+                }
             } catch (e) {
                 console.warn('Unable to save recent analysis', e);
+            }
+            
+            function displayRecentAnalyses() {
+                const recentCard = document.getElementById('recentCard');
+                const recentList = document.getElementById('recentList');
+                const historyKey = 'gobananas_history';
+                
+                try {
+                    const history = JSON.parse(localStorage.getItem(historyKey) || '[]');
+                    
+                    if (history.length === 0) {
+                        recentCard.style.display = 'none';
+                        return;
+                    }
+                    
+                    recentCard.style.display = 'block';
+                    recentList.innerHTML = '';
+                    
+                    history.forEach((entry, index) => {
+                        if (index === 0) return; // Skip current analysis
+                        
+                        const stageData = {
+                            1: { color: '#228B22', name: 'Stage 1: Green' },
+                            2: { color: '#32CD32', name: 'Stage 2: Light Green' },
+                            3: { color: '#9ACD32', name: 'Stage 3: Yellowish' },
+                            4: { color: '#ADFF2F', name: 'Stage 4: Light Yellow' },
+                            5: { color: '#FFD700', name: 'Stage 5: Golden' },
+                            6: { color: '#FFA500', name: 'Stage 6: Overripe' },
+                            7: { color: '#D2691E', name: 'Stage 7: Brown' }
+                        };
+                        
+                        const data = stageData[entry.stage] || { color: '#FFD700', name: 'Unknown Stage' };
+                        const timeAgo = getTimeAgo(entry.timestamp);
+                        
+                        const recentItem = document.createElement('div');
+                        recentItem.className = 'col-md-4 col-sm-6 mb-3';
+                        recentItem.innerHTML = `
+                            <div class="recent-item p-3">
+                                <div class="d-flex align-items-center">
+                                    <div class="recent-color me-3" style="background-color: ${data.color};"></div>
+                                    <div class="flex-grow-1">
+                                        <div class="fw-bold">${data.name}</div>
+                                        <small class="text-muted">${timeAgo}</small>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                        
+                        recentList.appendChild(recentItem);
+                    });
+                } catch (e) {
+                    console.warn('Error displaying recent analyses:', e);
+                    recentCard.style.display = 'none';
+                }
+            }
+            
+            function clearHistory() {
+                if (confirm('Are you sure you want to clear your analysis history?')) {
+                    localStorage.removeItem('gobananas_history');
+                    displayRecentAnalyses();
+                }
+            }
+            
+            function getTimeAgo(timestamp) {
+                const now = Date.now();
+                const diff = now - timestamp;
+                const minutes = Math.floor(diff / 60000);
+                const hours = Math.floor(diff / 3600000);
+                const days = Math.floor(diff / 86400000);
+                
+                if (minutes < 1) return 'Just now';
+                if (minutes < 60) return `${minutes}m ago`;
+                if (hours < 24) return `${hours}h ago`;
+                return `${days}d ago`;
             }
         });
     </script>

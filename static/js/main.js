@@ -28,6 +28,14 @@ class BananaRipenessApp {
         this.quickColors = document.querySelectorAll('.quick-colors [data-color]');
         this.colorGuideCircles = document.querySelectorAll('.color-circle');
 
+        // Banana slider elements
+        this.bananaSlider = document.getElementById('bananaSlider');
+        this.bananaStage = document.getElementById('bananaStage');
+        this.bananaSprites = document.querySelectorAll('.banana-sprite');
+        this.selectedBananaSprite = document.getElementById('selectedBananaSprite');
+        this.selectedBananaStage = document.getElementById('selectedBananaStage');
+        this.selectedBananaDescription = document.getElementById('selectedBananaDescription');
+
         // Mobile camera buttons
         this.btnUploadFile = document.getElementById('btnUploadFile');
         this.btnTakePhoto = document.getElementById('btnTakePhoto');
@@ -63,11 +71,18 @@ class BananaRipenessApp {
             this.removeImageBtn.addEventListener('click', () => this.removeImage());
         }
 
-        // Banana color button events
-        const colorButtons = document.querySelectorAll('.banana-color-btn');
-        colorButtons.forEach(btn => {
-            btn.addEventListener('click', (e) => this.handleBananaColorClick(e));
-        });
+        // Banana slider events
+        if (this.bananaSlider) {
+            this.bananaSlider.addEventListener('input', (e) => this.handleSliderChange(e));
+            this.bananaSlider.addEventListener('change', (e) => this.handleSliderChange(e));
+        }
+
+        // Banana sprite click events
+        if (this.bananaSprites && this.bananaSprites.length) {
+            this.bananaSprites.forEach(sprite => {
+                sprite.addEventListener('click', (e) => this.handleBananaImageClick(e));
+            });
+        }
 
         // Quick preset colors
         if (this.quickColors && this.quickColors.length) {
@@ -200,48 +215,78 @@ class BananaRipenessApp {
     }
 
     
-    handleBananaColorClick(e) {
+    handleSliderChange(e) {
+        const stage = parseInt(e.target.value);
+        this.updateBananaSelection(stage);
+    }
+
+    handleBananaImageClick(e) {
         e.preventDefault();
         
-        // Get the button (handle clicks on child elements)
-        const button = e.target.closest('.banana-color-btn');
-        if (!button) return;
+        // Get the sprite (handle clicks on child elements)
+        const sprite = e.target.closest('.banana-sprite');
+        if (!sprite) return;
         
-        const color = button.getAttribute('data-color');
-        const stage = button.getAttribute('data-stage');
+        const stage = parseInt(sprite.getAttribute('data-stage'));
         
-        // Update hidden input
-        const colorInput = document.getElementById('colorPicker');
-        if (colorInput) {
-            colorInput.value = color;
+        // Update slider value
+        if (this.bananaSlider) {
+            this.bananaSlider.value = stage;
         }
         
-        // Update active state
-        document.querySelectorAll('.banana-color-btn').forEach(btn => {
-            btn.classList.remove('active');
-        });
-        button.classList.add('active');
+        this.updateBananaSelection(stage);
+    }
+
+    updateBananaSelection(stage) {
+        // Stage data mapping
+        const stageData = {
+            1: { color: '#228B22', name: 'Stage 1: Green', description: 'Very firm, not sweet yet' },
+            2: { color: '#32CD32', name: 'Stage 2: Light Green', description: 'Still firm, slightly sweet' },
+            3: { color: '#9ACD32', name: 'Stage 3: Yellowish', description: 'Perfect for eating fresh' },
+            4: { color: '#ADFF2F', name: 'Stage 4: Light Yellow', description: 'Sweet and soft' },
+            5: { color: '#FFD700', name: 'Stage 5: Golden', description: 'Very sweet, ideal for eating' },
+            6: { color: '#FFA500', name: 'Stage 6: Overripe', description: 'Perfect for baking' }
+        };
         
-        // Update selected display
-        const selectedSwatch = document.getElementById('selectedSwatch');
-        const selectedStage = document.getElementById('selectedStage');
-        const selectedHex = document.getElementById('selectedHex');
+        const data = stageData[stage];
+        if (!data) return;
         
-        if (selectedSwatch) {
-            selectedSwatch.style.backgroundColor = color;
+        // Update hidden inputs
+        if (this.colorPicker) {
+            this.colorPicker.value = data.color;
+        }
+        if (this.bananaStage) {
+            this.bananaStage.value = stage;
+        }
+        
+        // Update active sprite
+        if (this.bananaSprites) {
+            this.bananaSprites.forEach(sprite => {
+                sprite.classList.remove('active');
+                if (parseInt(sprite.getAttribute('data-stage')) === stage) {
+                    sprite.classList.add('active');
+                }
+            });
+        }
+        
+        // Update selected banana display
+        if (this.selectedBananaSprite) {
+            const position = -(stage - 1) * 80; // 80px per banana in selected display
+            this.selectedBananaSprite.style.backgroundPosition = `${position}px 0`;
+            
             // Add animation
-            selectedSwatch.style.transform = 'scale(1.1)';
+            this.selectedBananaSprite.style.transform = 'scale(1.1)';
             setTimeout(() => {
-                selectedSwatch.style.transform = 'scale(1)';
+                this.selectedBananaSprite.style.transform = 'scale(1)';
             }, 200);
         }
         
-        if (selectedStage) {
-            selectedStage.textContent = stage;
+        if (this.selectedBananaStage) {
+            this.selectedBananaStage.textContent = data.name;
         }
         
-        if (selectedHex) {
-            selectedHex.textContent = color.toUpperCase();
+        if (this.selectedBananaDescription) {
+            this.selectedBananaDescription.textContent = data.description;
         }
         
         this.hasColor = true;
@@ -250,7 +295,7 @@ class BananaRipenessApp {
         this.updateSubmitButtonState();
         this.updateMethodIndicator(); // Update visual feedback
         
-        this.showSuccessMessage('Color selected!');
+        this.showSuccessMessage('Banana ripeness selected!');
     }
 
     applyPresetColor(color) {
@@ -282,25 +327,13 @@ class BananaRipenessApp {
     }
 
     clearColorSelection() {
-        // Remove active state from all color buttons
-        document.querySelectorAll('.banana-color-btn').forEach(btn => {
-            btn.classList.remove('active');
-        });
-        
-        // Reset to default color
-        const colorInput = document.getElementById('colorPicker');
-        if (colorInput) {
-            colorInput.value = '#9ACD32';
+        // Reset slider to default stage 3
+        if (this.bananaSlider) {
+            this.bananaSlider.value = 3;
         }
         
-        // Update display
-        const selectedSwatch = document.getElementById('selectedSwatch');
-        const selectedStage = document.getElementById('selectedStage');
-        const selectedHex = document.getElementById('selectedHex');
-        
-        if (selectedSwatch) selectedSwatch.style.backgroundColor = '#9ACD32';
-        if (selectedStage) selectedStage.textContent = 'Stage 3: Yellowish';
-        if (selectedHex) selectedHex.textContent = '#9ACD32';
+        // Reset to default stage 3
+        this.updateBananaSelection(3);
     }
 
     updateMethodIndicator() {
