@@ -166,7 +166,10 @@ class BananaRipenessApp {
             }, 50);
 
             this.hasImage = true;
+            this.hasColor = false; // Clear color state
+            this.clearColorSelection(); // Clear color UI
             this.updateSubmitButtonState();
+            this.updateMethodIndicator(); // Update visual feedback
             this.showSuccessMessage('Image uploaded successfully!');
         };
         
@@ -183,6 +186,7 @@ class BananaRipenessApp {
         this.uploadArea.classList.remove('d-none');
         this.hasImage = false;
         this.updateSubmitButtonState();
+        this.updateMethodIndicator(); // Update visual feedback
         
         // Add smooth transition
         this.uploadArea.style.opacity = '0';
@@ -241,7 +245,10 @@ class BananaRipenessApp {
         }
         
         this.hasColor = true;
+        this.hasImage = false; // Clear image state
+        this.removeImage(); // Clear image if present
         this.updateSubmitButtonState();
+        this.updateMethodIndicator(); // Update visual feedback
         
         this.showSuccessMessage('Color selected!');
     }
@@ -267,8 +274,43 @@ class BananaRipenessApp {
             selectedHex.textContent = color.toUpperCase();
         }
         this.hasColor = true;
+        this.hasImage = false; // Clear image state
+        this.removeImage(); // Clear image if present
         this.updateSubmitButtonState();
+        this.updateMethodIndicator(); // Update visual feedback
         this.showSuccessMessage('Color selected!');
+    }
+
+    clearColorSelection() {
+        // Remove active state from all color buttons
+        document.querySelectorAll('.banana-color-btn').forEach(btn => {
+            btn.classList.remove('active');
+        });
+        
+        // Reset to default color
+        const colorInput = document.getElementById('colorPicker');
+        if (colorInput) {
+            colorInput.value = '#9ACD32';
+        }
+        
+        // Update display
+        const selectedSwatch = document.getElementById('selectedSwatch');
+        const selectedStage = document.getElementById('selectedStage');
+        const selectedHex = document.getElementById('selectedHex');
+        
+        if (selectedSwatch) selectedSwatch.style.backgroundColor = '#9ACD32';
+        if (selectedStage) selectedStage.textContent = 'Stage 3: Yellowish';
+        if (selectedHex) selectedHex.textContent = '#9ACD32';
+    }
+
+    updateMethodIndicator() {
+        const imageActive = document.getElementById('imageActive');
+        const colorActive = document.getElementById('colorActive');
+        const neitherActive = document.getElementById('neitherActive');
+        
+        if (imageActive) imageActive.classList.toggle('d-none', !this.hasImage);
+        if (colorActive) colorActive.classList.toggle('d-none', this.hasImage || !this.hasColor);
+        if (neitherActive) neitherActive.classList.toggle('d-none', this.hasImage || this.hasColor);
     }
 
     getComputedBackgroundColor(el) {

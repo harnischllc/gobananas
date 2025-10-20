@@ -88,6 +88,13 @@ def classify_banana():
         app.logger.info('Classification request received')
         result = {}
         
+        # Check for both image and color (shouldn't happen with fixed UI)
+        has_image = 'image' in request.files and request.files['image'].filename
+        has_color = 'color' in request.form and request.form['color']
+        
+        if has_image and has_color:
+            app.logger.warning('Both image and color provided - using image (UI should prevent this)')
+        
         # Check if image file is provided
         if 'image' in request.files and request.files['image'].filename:
             app.logger.debug('Processing image upload')
@@ -205,6 +212,13 @@ def api_classify_banana():
     try:
         app.logger.info('API classification request received')
         result = {}
+        
+        # Check for both image and color (shouldn't happen with fixed UI)
+        has_image = 'image' in request.files and request.files['image'].filename
+        has_color = (request.is_json and 'color' in request.json and request.json['color']) or ('color' in request.form and request.form['color'])
+        
+        if has_image and has_color:
+            app.logger.warning('API: Both image and color provided - using image (UI should prevent this)')
         
         # Check if image file is provided
         if 'image' in request.files and request.files['image'].filename:

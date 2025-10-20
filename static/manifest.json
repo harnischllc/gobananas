@@ -1,0 +1,35 @@
+{
+  "name": "Go Bananas - Ripeness Detection",
+  "short_name": "Go Bananas",
+  "description": "Detect banana ripeness using AI-powered color analysis",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#4169E1",
+  "theme_color": "#FFD700",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/static/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/static/apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png"
+    },
+    {
+      "src": "/static/android-chrome-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/static/android-chrome-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ],
+  "categories": ["food", "utilities", "lifestyle"],
+  "lang": "en"
+}
