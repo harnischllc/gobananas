@@ -25,6 +25,12 @@ class BananaRipenessApp {
         this.hexInput = document.getElementById('hexInput');
         this.colorSwatch = document.getElementById('colorSwatch');
         this.colorHex = document.getElementById('colorHex');
+        this.quickColors = document.querySelectorAll('.quick-colors [data-color]');
+        this.colorGuideCircles = document.querySelectorAll('.color-circle');
+
+        // Mobile camera buttons
+        this.btnUploadFile = document.getElementById('btnUploadFile');
+        this.btnTakePhoto = document.getElementById('btnTakePhoto');
         
         // State management
         this.hasImage = false;
@@ -44,19 +50,37 @@ class BananaRipenessApp {
             this.fileInput.addEventListener('change', (e) => this.handleFileSelection(e));
         }
 
+        // Distinct upload/take photo buttons
+        if (this.btnUploadFile) {
+            this.btnUploadFile.addEventListener('click', () => this.triggerFileInput());
+        }
+        if (this.btnTakePhoto) {
+            this.btnTakePhoto.addEventListener('click', () => this.triggerCameraCapture());
+        }
+
         // Remove image button
         if (this.removeImageBtn) {
             this.removeImageBtn.addEventListener('click', () => this.removeImage());
         }
 
-        // Color picker events
-        if (this.colorPicker) {
-            this.colorPicker.addEventListener('input', (e) => this.handleColorChange(e));
+        // Banana color button events
+        const colorButtons = document.querySelectorAll('.banana-color-btn');
+        colorButtons.forEach(btn => {
+            btn.addEventListener('click', (e) => this.handleBananaColorClick(e));
+        });
+
+        // Quick preset colors
+        if (this.quickColors && this.quickColors.length) {
+            this.quickColors.forEach(btn => {
+                btn.addEventListener('click', () => this.applyPresetColor(btn.getAttribute('data-color')));
+            });
         }
 
-        if (this.hexInput) {
-            this.hexInput.addEventListener('input', (e) => this.handleHexInput(e));
-            this.hexInput.addEventListener('blur', (e) => this.validateHexInput(e));
+        // Interactive color guide
+        if (this.colorGuideCircles && this.colorGuideCircles.length) {
+            this.colorGuideCircles.forEach(circle => {
+                circle.addEventListener('click', () => this.applyPresetColor(this.getComputedBackgroundColor(circle)));
+            });
         }
 
         // Form submission
@@ -121,6 +145,11 @@ class BananaRipenessApp {
 
     previewImage(file) {
         const reader = new FileReader();
+        // Clear prior animation timeout if any
+        if (this._swatchTimeoutId) {
+            clearTimeout(this._swatchTimeoutId);
+            this._swatchTimeoutId = null;
+        }
         reader.onload = (e) => {
             this.previewImg.src = e.target.result;
             this.imagePreview.classList.remove('d-none');
@@ -130,7 +159,7 @@ class BananaRipenessApp {
             this.imagePreview.style.opacity = '0';
             this.imagePreview.style.transform = 'scale(0.8)';
             
-            setTimeout(() => {
+            this._swatchTimeoutId = setTimeout(() => {
                 this.imagePreview.style.transition = 'all 0.3s ease-out';
                 this.imagePreview.style.opacity = '1';
                 this.imagePreview.style.transform = 'scale(1)';
@@ -166,61 +195,102 @@ class BananaRipenessApp {
         }, 50);
     }
 
-    handleColorChange(e) {
-        const color = e.target.value;
-        this.hexInput.value = color.substring(1); // Remove # symbol
-        this.updateColorSwatch(color);
-        this.hasColor = true;
-        this.updateSubmitButtonState();
-    }
-
-    handleHexInput(e) {
-        const hex = e.target.value.replace('#', '');
+    
+    handleBananaColorClick(e) {
+        e.preventDefault();
         
-        // Validate hex format
-        if (/^[0-9A-Fa-f]{6}$/.test(hex)) {
-            const color = '#' + hex;
-            this.colorPicker.value = color;
-            this.updateColorSwatch(color);
-            this.hasColor = true;
-            this.updateSubmitButtonState();
-            
-            // Add visual feedback
-            this.hexInput.style.borderColor = '#4CAF50';
-            setTimeout(() => {
-                this.hexInput.style.borderColor = '';
-            }, 1000);
-        } else if (hex.length === 6) {
-            // Invalid hex format
-            this.hexInput.style.borderColor = '#F44336';
-            this.hasColor = false;
-            this.updateSubmitButtonState();
+        // Get the button (handle clicks on child elements)
+        const button = e.target.closest('.banana-color-btn');
+        if (!button) return;
+        
+        const color = button.getAttribute('data-color');
+        const stage = button.getAttribute('data-stage');
+        
+        // Update hidden input
+        const colorInput = document.getElementById('colorPicker');
+        if (colorInput) {
+            colorInput.value = color;
         }
-    }
-
-    validateHexInput(e) {
-        const hex = e.target.value.replace('#', '');
-        if (hex.length > 0 && !/^[0-9A-Fa-f]{6}$/.test(hex)) {
-            this.showAlert('Please enter a valid 6-digit hex color code', 'warning');
-            this.hexInput.focus();
-        }
-    }
-
-    updateColorSwatch(color) {
-        const swatchColor = this.colorSwatch.querySelector('.swatch-color');
-        if (swatchColor) {
-            swatchColor.style.backgroundColor = color;
-            
+        
+        // Update active state
+        document.querySelectorAll('.banana-color-btn').forEach(btn => {
+            btn.classList.remove('active');
+        });
+        button.classList.add('active');
+        
+        // Update selected display
+        const selectedSwatch = document.getElementById('selectedSwatch');
+        const selectedStage = document.getElementById('selectedStage');
+        const selectedHex = document.getElementById('selectedHex');
+        
+        if (selectedSwatch) {
+            selectedSwatch.style.backgroundColor = color;
             // Add animation
-            swatchColor.style.transform = 'scale(1.1)';
+            selectedSwatch.style.transform = 'scale(1.1)';
             setTimeout(() => {
-                swatchColor.style.transform = 'scale(1)';
+                selectedSwatch.style.transform = 'scale(1)';
             }, 200);
         }
         
-        if (this.colorHex) {
-            this.colorHex.textContent = color.toUpperCase();
+        if (selectedStage) {
+            selectedStage.textContent = stage;
         }
+        
+        if (selectedHex) {
+            selectedHex.textContent = color.toUpperCase();
+        }
+        
+        this.hasColor = true;
+        this.updateSubmitButtonState();
+        
+        this.showSuccessMessage('Color selected!');
+    }
+
+    applyPresetColor(color) {
+        if (!color) return;
+        // Update hidden input
+        const colorInput = document.getElementById('colorPicker');
+        if (colorInput) {
+            colorInput.value = color;
+        }
+        // Update selected display (no stage info from guide)
+        const selectedSwatch = document.getElementById('selectedSwatch');
+        const selectedHex = document.getElementById('selectedHex');
+        if (selectedSwatch) {
+            selectedSwatch.style.backgroundColor = color;
+            selectedSwatch.style.transform = 'scale(1.1)';
+            setTimeout(() => {
+                selectedSwatch.style.transform = 'scale(1)';
+            }, 200);
+        }
+        if (selectedHex) {
+            selectedHex.textContent = color.toUpperCase();
+        }
+        this.hasColor = true;
+        this.updateSubmitButtonState();
+        this.showSuccessMessage('Color selected!');
+    }
+
+    getComputedBackgroundColor(el) {
+        const style = window.getComputedStyle(el);
+        const rgb = style.backgroundColor;
+        // Convert rgb(a) to hex
+        const match = rgb.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/i);
+        if (!match) return null;
+        const r = parseInt(match[1], 10);
+        const g = parseInt(match[2], 10);
+        const b = parseInt(match[3], 10);
+        const toHex = (v) => ('0' + v.toString(16)).slice(-2).toUpperCase();
+        return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+    }
+
+    triggerCameraCapture() {
+        // Prefer facingMode if supported
+        if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+            this.triggerFileInput(); // fallback to file input
+            return;
+        }
+        this.triggerFileInput();
     }
 
     setupDragAndDrop() {
@@ -343,7 +413,11 @@ class BananaRipenessApp {
         })
         .catch(error => {
             console.error('Error:', error);
-            this.showAlert('An error occurred while processing your request. Please try again.', 'danger');
+            if (!navigator.onLine) {
+                this.showAlert('No internet connection. Please check your network.', 'danger');
+            } else {
+                this.showAlert('Server error. Please try again later.', 'danger');
+            }
             this.setLoadingState(false);
         });
     }
@@ -503,3 +577,4 @@ style.textContent = `
     }
 `;
 document.head.appendChild(style);
+

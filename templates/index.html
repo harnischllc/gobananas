@@ -29,10 +29,18 @@
                                     <div class="upload-content text-center">
                                         <i class="fas fa-camera fa-3x text-muted mb-3"></i>
                                         <p class="mb-2">Click to upload or drag & drop</p>
-                                        <p class="text-muted small">PNG, JPG, JPEG, GIF, BMP</p>
+                                        <p class="text-muted small">PNG, JPG, JPEG, GIF, BMP (max 10MB)</p>
                                     </div>
                                     <input type="file" class="form-control d-none" id="bananaImage" name="image" 
                                            accept="image/*" capture="environment">
+                                </div>
+                                <div class="mt-2 d-flex gap-2">
+                                    <button type="button" class="btn btn-outline-secondary btn-sm" id="btnUploadFile">
+                                        <i class="fas fa-upload me-1"></i>Upload from device
+                                    </button>
+                                    <button type="button" class="btn btn-outline-primary btn-sm" id="btnTakePhoto">
+                                        <i class="fas fa-camera me-1"></i>Take Photo
+                                    </button>
                                 </div>
                                 <div id="imagePreview" class="mt-3 d-none">
                                     <img id="previewImg" class="img-thumbnail" style="max-width: 200px; max-height: 200px;">
@@ -50,27 +58,64 @@
                             <!-- Color Picker Option -->
                             <div class="mb-4">
                                 <h5 class="mb-3">🎨 Pick Banana Color</h5>
-                                <div class="row align-items-center">
-                                    <div class="col-md-6">
-                                        <input type="color" class="form-control form-control-color" id="colorPicker" 
-                                               name="color" value="#32CD32" title="Choose banana color">
-                                    </div>
-                                    <div class="col-md-6">
-                                        <div class="input-group">
-                                            <span class="input-group-text">#</span>
-                                            <input type="text" class="form-control" id="hexInput" placeholder="FFD700" 
-                                                   pattern="[0-9A-Fa-f]{6}" maxlength="6">
-                                        </div>
-                                        <div class="form-text">Enter hex color code</div>
-                                    </div>
+                                <p class="text-muted small mb-3">Select the color that best matches your banana</p>
+                                
+                                <!-- Hidden input to store selected color -->
+                                <input type="hidden" id="colorPicker" name="color" value="#9ACD32">
+                                
+                                <!-- Banana Color Palette Grid -->
+                                <div class="banana-color-grid">
+                                    <!-- Stage 1-2: Green -->
+                                    <button type="button" class="banana-color-btn" data-color="#228B22" data-stage="Stage 1-2: Green">
+                                        <div class="color-preview" style="background-color: #228B22;"></div>
+                                        <span class="color-label">Dark Green</span>
+                                    </button>
+                                    
+                                    <button type="button" class="banana-color-btn" data-color="#32CD32" data-stage="Stage 2: Light Green">
+                                        <div class="color-preview" style="background-color: #32CD32;"></div>
+                                        <span class="color-label">Green</span>
+                                    </button>
+                                    
+                                    <!-- Stage 3: Yellowish Green -->
+                                    <button type="button" class="banana-color-btn active" data-color="#9ACD32" data-stage="Stage 3: Yellowish">
+                                        <div class="color-preview" style="background-color: #9ACD32;"></div>
+                                        <span class="color-label">Yellow-Green</span>
+                                    </button>
+                                    
+                                    <button type="button" class="banana-color-btn" data-color="#ADFF2F" data-stage="Stage 3-4: More Yellow">
+                                        <div class="color-preview" style="background-color: #ADFF2F;"></div>
+                                        <span class="color-label">Light Yellow</span>
+                                    </button>
+                                    
+                                    <!-- Stage 4-5: Yellow -->
+                                    <button type="button" class="banana-color-btn" data-color="#FFFF00" data-stage="Stage 4-5: Yellow">
+                                        <div class="color-preview" style="background-color: #FFFF00;"></div>
+                                        <span class="color-label">Bright Yellow</span>
+                                    </button>
+                                    
+                                    <button type="button" class="banana-color-btn" data-color="#FFD700" data-stage="Stage 5-6: Golden Yellow">
+                                        <div class="color-preview" style="background-color: #FFD700;"></div>
+                                        <span class="color-label">Golden</span>
+                                    </button>
+                                    
+                                    <!-- Stage 6-7: Ripe/Overripe -->
+                                    <button type="button" class="banana-color-btn" data-color="#FFA500" data-stage="Stage 6-7: Orange-Yellow">
+                                        <div class="color-preview" style="background-color: #FFA500;"></div>
+                                        <span class="color-label">Orange-Yellow</span>
+                                    </button>
+                                    
+                                    <button type="button" class="banana-color-btn" data-color="#D2691E" data-stage="Stage 7: Brown Flecks">
+                                        <div class="color-preview" style="background-color: #D2691E;"></div>
+                                        <span class="color-label">Brown</span>
+                                    </button>
                                 </div>
-                                <div class="mt-3">
-                                    <div id="colorSwatch" class="color-swatch">
-                                        <div class="swatch-color" style="background-color: #32CD32;"></div>
-                                        <div class="swatch-info">
-                                            <strong>Selected Color</strong><br>
-                                            <span id="colorHex">#32CD32</span>
-                                        </div>
+                                
+                                <!-- Selected Color Display -->
+                                <div class="mt-3 selected-color-display">
+                                    <div class="selected-swatch" id="selectedSwatch" style="background-color: #9ACD32;"></div>
+                                    <div class="selected-info">
+                                        <strong id="selectedStage">Stage 3: Yellowish</strong><br>
+                                        <span class="text-muted" id="selectedHex">#9ACD32</span>
                                     </div>
                                 </div>
                             </div>
@@ -121,28 +166,41 @@
                         <div class="row text-center">
                             <div class="col-md-3 col-6 mb-3">
                                 <div class="color-guide-item">
-                                    <div class="color-circle" style="background-color: #228B22;"></div>
+                                    <div class="color-circle" style="background-color: #228B22; cursor: pointer;"></div>
                                     <small>Stage 1-2<br>Green</small>
                                 </div>
                             </div>
                             <div class="col-md-3 col-6 mb-3">
                                 <div class="color-guide-item">
-                                    <div class="color-circle" style="background-color: #9ACD32;"></div>
+                                    <div class="color-circle" style="background-color: #9ACD32; cursor: pointer;"></div>
                                     <small>Stage 3-4<br>Light Green</small>
                                 </div>
                             </div>
                             <div class="col-md-3 col-6 mb-3">
                                 <div class="color-guide-item">
-                                    <div class="color-circle" style="background-color: #FFD700;"></div>
+                                    <div class="color-circle" style="background-color: #FFD700; cursor: pointer;"></div>
                                     <small>Stage 5-6<br>Yellow</small>
                                 </div>
                             </div>
                             <div class="col-md-3 col-6 mb-3">
                                 <div class="color-guide-item">
-                                    <div class="color-circle" style="background-color: #D2691E;"></div>
+                                    <div class="color-circle" style="background-color: #D2691E; cursor: pointer;"></div>
                                     <small>Stage 7<br>Brown</small>
                                 </div>
                             </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Recent Analyses -->
+                <div class="card mt-4" id="recentCard" style="display:none;">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <h5 class="card-title mb-0">🕒 Recent Analyses</h5>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" id="clearHistoryBtn">Clear</button>
+                        </div>
+                        <div id="recentList" class="recent-list row g-3">
+                            <!-- Rendered by JS -->
                         </div>
                     </div>
                 </div>
@@ -222,21 +280,7 @@
                 uploadArea.classList.remove('d-none');
             });
 
-            // Color picker handlers
-            colorPicker.addEventListener('input', (e) => {
-                const color = e.target.value;
-                hexInput.value = color.substring(1);
-                updateColorSwatch(color);
-            });
-
-            hexInput.addEventListener('input', (e) => {
-                const hex = e.target.value;
-                if (/^[0-9A-Fa-f]{6}$/.test(hex)) {
-                    const color = '#' + hex;
-                    colorPicker.value = color;
-                    updateColorSwatch(color);
-                }
-            });
+            
 
             // Form submission handler
             form.addEventListener('submit', (e) => {
@@ -270,14 +314,65 @@
                 }
             }
 
-            function updateColorSwatch(color) {
-                const swatchColor = colorSwatch.querySelector('.swatch-color');
-                swatchColor.style.backgroundColor = color;
-                colorHex.textContent = color.toUpperCase();
-            }
+            
 
-            // Initialize color swatch
-            updateColorSwatch(colorPicker.value);
+            // Recent history render
+            try {
+                const recentCard = document.getElementById('recentCard');
+                const recentList = document.getElementById('recentList');
+                const clearHistoryBtn = document.getElementById('clearHistoryBtn');
+                if (recentCard && recentList) {
+                    const history = JSON.parse(localStorage.getItem('gobananas_history') || '[]');
+                    renderRecent(history);
+                    recentCard.style.display = history.length ? '' : 'none';
+
+                    if (clearHistoryBtn) {
+                        clearHistoryBtn.addEventListener('click', function() {
+                            localStorage.removeItem('gobananas_history');
+                            recentList.innerHTML = '';
+                            recentCard.style.display = 'none';
+                        });
+                    }
+                }
+
+                function renderRecent(items) {
+                    recentList.innerHTML = '';
+                    items.slice(0,3).forEach(item => {
+                        const col = document.createElement('div');
+                        col.className = 'col-md-4 col-12';
+                        col.innerHTML = `
+                            <div class="recent-item card h-100 p-2" role="button" aria-label="Load previous analysis">
+                                <div class="d-flex align-items-center">
+                                    <div class="recent-color me-3" style="background:${hslToHex(item.hue || 60, 0.7, 0.5)}"></div>
+                                    <div>
+                                        <div class="fw-semibold">Stage ${item.stage}</div>
+                                        <div class="small text-muted">${new Date(item.timestamp).toLocaleString()}</div>
+                                    </div>
+                                </div>
+                            </div>`;
+                        col.querySelector('.recent-item').addEventListener('click', function() {
+                            const hex = hslToHex(item.hue || 60, 0.7, 0.5);
+                            colorPicker.value = hex;
+                            hexInput.value = hex.substring(1);
+                            updateColorSwatch(hex);
+                            window.scrollTo({ top: document.getElementById('bananaForm').offsetTop - 80, behavior: 'smooth' });
+                        });
+                        recentList.appendChild(col);
+                    });
+                }
+
+                function hslToHex(h, s, l) {
+                    const a = s * Math.min(l, 1 - l);
+                    const f = (n) => {
+                        const k = (n + h / 30) % 12;
+                        const c = l - a * Math.max(-1, Math.min(k - 3, Math.min(9 - k, 1)));
+                        return Math.round(255 * c).toString(16).padStart(2, '0');
+                    };
+                    return `#${f(0)}${f(8)}${f(4)}`.toUpperCase();
+                }
+            } catch (e) {
+                console.warn('Recent history unavailable', e);
+            }
         });
     </script>
 
