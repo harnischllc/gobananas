@@ -13,9 +13,16 @@
         <div class="row justify-content-center">
             <div class="col-md-10">
                 <!-- Header -->
-                <div class="text-center mt-4 mb-4">
-                    <h1 class="display-5 fw-bold text-warning">🍌 Ripeness Analysis</h1>
-                    <p class="lead text-muted">Your banana classification results</p>
+                <div class="d-flex justify-content-between align-items-center mt-4 mb-4">
+                    <div>
+                        <h1 class="display-6 fw-bold text-warning mb-0">🍌 Ripeness Analysis</h1>
+                        <p class="lead text-muted mb-0">Your banana classification results</p>
+                    </div>
+                    <div>
+                        <a href="/" class="btn btn-warning">
+                            <i class="fas fa-rotate-left me-2"></i>Analyze Another
+                        </a>
+                    </div>
                 </div>
 
                 {% if result and result.success %}
@@ -91,13 +98,23 @@
                             {% endif %}
 
                             <!-- Confidence Score -->
-                            {% if result.confidence %}
+                            {% if result.confidence is defined %}
                                 <div class="text-center mb-4">
                                     <div class="confidence-display">
                                         <h6>Analysis Confidence</h6>
+                                        <div class="mb-2">
+                                            {% set conf_pct = (result.confidence * 100) | float %}
+                                            {% if conf_pct > 80 %}
+                                                <span class="badge bg-success fs-6">🟢 Highly Confident ({{ "%.0f"|format(conf_pct) }}%)</span>
+                                            {% elif conf_pct > 60 %}
+                                                <span class="badge bg-warning text-dark fs-6">🟡 Moderately Confident ({{ "%.0f"|format(conf_pct) }}%)</span>
+                                            {% else %}
+                                                <span class="badge bg-danger fs-6">🔴 Low Confidence ({{ "%.0f"|format(conf_pct) }}%) - Try better lighting</span>
+                                            {% endif %}
+                                        </div>
                                         <div class="progress" style="height: 20px;">
-                                            <div class="progress-bar {% if result.confidence > 0.8 %}bg-success{% elif result.confidence > 0.6 %}bg-warning{% else %}bg-danger{% endif %}" 
-                                                 role="progressbar" 
+                                            <div class="progress-bar {% if result.confidence > 0.8 %}bg-success{% elif result.confidence > 0.6 %}bg-warning{% else %}bg-danger{% endif %}"
+                                                 role="progressbar"
                                                  style="width: {{ result.confidence * 100 }}%">
                                                 {{ "%.1f"|format(result.confidence * 100) }}%
                                             </div>
@@ -208,6 +225,24 @@
                 detectedSwatch.style.backgroundColor = color;
             }
             {% endif %}
+
+            // Save recent analysis to localStorage
+            try {
+                {% if result %}
+                const historyKey = 'gobananas_history';
+                const entry = {
+                    stage: {{ result.stage if result.stage is defined else 0 }},
+                    hue: {{ result.hue if result.hue is defined else 60 }},
+                    timestamp: Date.now()
+                };
+                const existing = JSON.parse(localStorage.getItem(historyKey) || '[]');
+                existing.unshift(entry);
+                const pruned = existing.slice(0, 10);
+                localStorage.setItem(historyKey, JSON.stringify(pruned));
+                {% endif %}
+            } catch (e) {
+                console.warn('Unable to save recent analysis', e);
+            }
         });
     </script>
 

@@ -52,6 +52,11 @@ def about():
     """About page with information about the banana ripeness detection technology"""
     return render_template('about.html')
 
+@app.route('/api/docs')
+def api_docs():
+    """Simple API documentation page for available endpoints"""
+    return render_template('api_docs.html')
+
 @app.route('/health')
 def health_check():
     """

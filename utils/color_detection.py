@@ -74,17 +74,18 @@ def hue_to_stage(hue):
     # Normalize hue to 0-360 range
     hue = hue % 360
     
+    # Define mutually exclusive ranges ordered from green to brown
     if 60 <= hue <= 120:
         return 1  # Green
-    elif 45 <= hue < 60:
+    elif 50 <= hue < 60:
         return 2  # Light Green
-    elif 35 <= hue < 45:
+    elif 40 <= hue < 50:
         return 3  # Yellowish
-    elif 25 <= hue < 35:
+    elif 30 <= hue < 40:
         return 4  # More Yellow
-    elif 30 <= hue < 45:
+    elif 25 <= hue < 30:
         return 5  # Yellow with Green Tips
-    elif 20 <= hue < 30:
+    elif 20 <= hue < 25:
         return 6  # Yellow
     elif 0 <= hue < 20:
         return 7  # Yellow with Brown Flecks
@@ -392,11 +393,11 @@ def calculate_stage_confidence(hue, stage):
     # Define hue ranges for each stage
     stage_hue_ranges = {
         1: (60, 120),   # Green
-        2: (45, 60),    # Light Green
-        3: (35, 45),    # Yellowish
-        4: (25, 35),    # More Yellow
-        5: (30, 45),    # Yellow with Green Tips
-        6: (20, 30),    # Yellow
+        2: (50, 60),    # Light Green
+        3: (40, 50),    # Yellowish
+        4: (30, 40),    # More Yellow
+        5: (25, 30),    # Yellow with Green Tips
+        6: (20, 25),    # Yellow
         7: (0, 20)      # Brown flecks
     }
     
