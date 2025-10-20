@@ -31,8 +31,6 @@ class BananaRipenessApp {
         // Banana slider elements
         this.bananaSlider = document.getElementById('bananaSlider');
         this.bananaStage = document.getElementById('bananaStage');
-        this.bananaSprites = document.querySelectorAll('.banana-sprite');
-        this.selectedBananaSprite = document.getElementById('selectedBananaSprite');
         this.selectedBananaStage = document.getElementById('selectedBananaStage');
         this.selectedBananaDescription = document.getElementById('selectedBananaDescription');
 
@@ -77,12 +75,6 @@ class BananaRipenessApp {
             this.bananaSlider.addEventListener('change', (e) => this.handleSliderChange(e));
         }
 
-        // Banana sprite click events
-        if (this.bananaSprites && this.bananaSprites.length) {
-            this.bananaSprites.forEach(sprite => {
-                sprite.addEventListener('click', (e) => this.handleBananaImageClick(e));
-            });
-        }
 
         // Quick preset colors
         if (this.quickColors && this.quickColors.length) {
@@ -220,22 +212,6 @@ class BananaRipenessApp {
         this.updateBananaSelection(stage);
     }
 
-    handleBananaImageClick(e) {
-        e.preventDefault();
-        
-        // Get the sprite (handle clicks on child elements)
-        const sprite = e.target.closest('.banana-sprite');
-        if (!sprite) return;
-        
-        const stage = parseInt(sprite.getAttribute('data-stage'));
-        
-        // Update slider value
-        if (this.bananaSlider) {
-            this.bananaSlider.value = stage;
-        }
-        
-        this.updateBananaSelection(stage);
-    }
 
     updateBananaSelection(stage) {
         // Stage data mapping
@@ -259,26 +235,10 @@ class BananaRipenessApp {
             this.bananaStage.value = stage;
         }
         
-        // Update active sprite
-        if (this.bananaSprites) {
-            this.bananaSprites.forEach(sprite => {
-                sprite.classList.remove('active');
-                if (parseInt(sprite.getAttribute('data-stage')) === stage) {
-                    sprite.classList.add('active');
-                }
-            });
-        }
-        
         // Update selected banana display
-        if (this.selectedBananaSprite) {
-            const position = -(stage - 1) * 80; // 80px per banana in selected display
-            this.selectedBananaSprite.style.backgroundPosition = `${position}px 0`;
-            
-            // Add animation
-            this.selectedBananaSprite.style.transform = 'scale(1.1)';
-            setTimeout(() => {
-                this.selectedBananaSprite.style.transform = 'scale(1)';
-            }, 200);
+        const colorCircle = document.getElementById('selectedColorCircle');
+        if (colorCircle) {
+            colorCircle.style.backgroundColor = data.color;
         }
         
         if (this.selectedBananaStage) {
