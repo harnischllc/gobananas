@@ -24,16 +24,20 @@
     <div class="container">
         <!-- Header -->
         <div class="app-header">
-            <svg class="banana-icon" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <svg class="banana-icon" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
                 <path d="M52 12c-2-4-8-8-16-6C28 8 20 16 14 26c-6 10-8 22-4 28 2 3 5 4 8 2 4-2 6-6 8-10 4-8 10-18 18-24 4-3 8-4 10-4 1 0 2-2 0-6h-2z" fill="#FFE135" stroke="#8B6914" stroke-width="2" stroke-linecap="round"/>
                 <path d="M36 6c4-2 8-1 12 2" stroke="#4CAF50" stroke-width="2.5" stroke-linecap="round"/>
+                <!-- Character spots -->
+                <circle cx="24" cy="34" r="1.5" fill="#D4A017" opacity="0.6"/>
+                <circle cx="30" cy="28" r="1" fill="#D4A017" opacity="0.4"/>
+                <circle cx="20" cy="40" r="1.2" fill="#D4A017" opacity="0.5"/>
             </svg>
             <h1 class="app-title">Go Bananas</h1>
             <p class="app-subtitle">Snap. Scan. Know your banana.</p>
         </div>
 
         <!-- Main Form Card -->
-        <div class="card">
+        <div class="card card-primary">
             <div class="card-body">
                 <form id="bananaForm" action="/classify" method="POST" enctype="multipart/form-data">
 
@@ -147,7 +151,7 @@
         <div id="resultArea" class="d-none"></div>
 
         <!-- Color Guide -->
-        <div class="card">
+        <div class="card card-flat">
             <div class="card-body">
                 <p class="section-title">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: -2px; margin-right: 4px;">
@@ -187,7 +191,7 @@
         </div>
 
         <!-- Recent Analyses -->
-        <div class="card" id="recentCard" style="display:none;">
+        <div class="card card-flat" id="recentCard" style="display:none;">
             <div class="card-body">
                 <div class="d-flex justify-content-between align-items-center mb-2">
                     <p class="section-title mb-0">
