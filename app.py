@@ -262,6 +262,63 @@ def api_detect_ripeness():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+@app.route('/api/feedback', methods=['POST'])
+@limiter.limit("30 per minute")
+def submit_feedback():
+    """Submit user feedback on a scan result."""
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({'error': 'JSON body required'}), 400
+
+        required_fields = ['hue', 'stage_predicted']
+        for field in required_fields:
+            if field not in data:
+                return jsonify({'error': f'Missing required field: {field}'}), 400
+
+        scan = Scan(
+            user_id=data.get('user_id'),
+            hue_detected=data['hue'],
+            stage_predicted=data['stage_predicted'],
+            stage_corrected=data.get('stage_corrected'),
+            feedback=data.get('feedback')
+        )
+        db.session.add(scan)
+        db.session.commit()
+
+        return jsonify({'success': True, 'scan_id': scan.id})
+    except Exception as e:
+        app.logger.error(f'Feedback error: {str(e)}', exc_info=True)
+        db.session.rollback()
+        return jsonify({'error': 'Failed to save feedback'}), 500
+
+
+@app.route('/api/user', methods=['POST'])
+@limiter.limit("10 per minute")
+def register_device():
+    """Register or retrieve a user by device ID."""
+    try:
+        data = request.get_json()
+        if not data or 'device_id' not in data:
+            return jsonify({'error': 'device_id required'}), 400
+
+        user = User.query.filter_by(device_id=data['device_id']).first()
+        if not user:
+            user = User(device_id=data['device_id'])
+            db.session.add(user)
+            db.session.commit()
+
+        return jsonify({
+            'user_id': user.id,
+            'is_premium': user.is_premium,
+            'preferred_stage': user.preferred_stage
+        })
+    except Exception as e:
+        app.logger.error(f'User registration error: {str(e)}', exc_info=True)
+        db.session.rollback()
+        return jsonify({'error': 'Failed to register device'}), 500
+
+
 if __name__ == '__main__':
     # Configure for production
     debug_mode = os.environ.get('FLASK_DEBUG', 'False').lower() == 'true'
