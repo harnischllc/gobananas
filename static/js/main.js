@@ -5,6 +5,7 @@ class BananaRipenessApp {
         this.initializeElements();
         this.bindEvents();
         this.initializeAnimations();
+        this.registerDevice();
     }
 
     initializeElements() {
@@ -319,13 +320,46 @@ class BananaRipenessApp {
         return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
     }
 
-    triggerCameraCapture() {
-        // Prefer facingMode if supported
-        if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-            this.triggerFileInput(); // fallback to file input
-            return;
+    async triggerCameraCapture() {
+        try {
+            if (typeof window.Capacitor !== 'undefined') {
+                var Camera = (await import('@capacitor/camera')).Camera;
+                var CameraResultType = (await import('@capacitor/camera')).CameraResultType;
+                var CameraSource = (await import('@capacitor/camera')).CameraSource;
+                var photo = await Camera.getPhoto({
+                    quality: 80,
+                    resultType: CameraResultType.Base64,
+                    source: CameraSource.Camera,
+                    width: 800
+                });
+                var blob = this.base64ToBlob(photo.base64String, 'image/' + photo.format);
+                var file = new File([blob], 'banana.' + photo.format, { type: 'image/' + photo.format });
+                var dt = new DataTransfer();
+                dt.items.add(file);
+                this.fileInput.files = dt.files;
+                this.validateAndPreviewImage(file);
+            } else {
+                this.fileInput.setAttribute('capture', 'environment');
+                this.fileInput.click();
+            }
+        } catch (e) {
+            console.error('Camera error:', e);
+            this.triggerFileInput();
         }
-        this.triggerFileInput();
+    }
+
+    base64ToBlob(base64, mime) {
+        var byteChars = atob(base64);
+        var byteArrays = [];
+        for (var offset = 0; offset < byteChars.length; offset += 512) {
+            var slice = byteChars.slice(offset, offset + 512);
+            var byteNumbers = new Array(slice.length);
+            for (var i = 0; i < slice.length; i++) {
+                byteNumbers[i] = slice.charCodeAt(i);
+            }
+            byteArrays.push(new Uint8Array(byteNumbers));
+        }
+        return new Blob(byteArrays, { type: mime });
     }
 
     setupDragAndDrop() {
@@ -665,6 +699,27 @@ class BananaRipenessApp {
             'info': 'info-circle'
         };
         return icons[type] || 'info-circle';
+    }
+
+    async registerDevice() {
+        var deviceId = localStorage.getItem('gobananas_device_id');
+        if (!deviceId) {
+            deviceId = crypto.randomUUID();
+            localStorage.setItem('gobananas_device_id', deviceId);
+        }
+
+        try {
+            var response = await fetch('/api/user', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ device_id: deviceId })
+            });
+            var data = await response.json();
+            localStorage.setItem('gobananas_user_id', data.user_id);
+            localStorage.setItem('gobananas_premium', String(data.is_premium));
+        } catch (e) {
+            console.warn('Device registration failed (offline?)', e);
+        }
     }
 
     formatFileSize(bytes) {
