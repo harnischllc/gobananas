@@ -5,7 +5,7 @@ class BananaRipenessApp {
         this.initializeElements();
         this.bindEvents();
         this.initializeAnimations();
-        this.registerDevice();
+        this.registrationPromise = this.registerDevice();
     }
 
     initializeElements() {
@@ -601,7 +601,7 @@ class BananaRipenessApp {
         var capturedStage = data.stage;
         var capturedHue = data.hue;
         thumbsUp.addEventListener('click', function() {
-            self.submitFeedback(capturedStage, capturedHue, 'positive');
+            self.submitFeedback(capturedStage, capturedHue, 'up');
         });
         btnGroup.appendChild(thumbsUp);
 
@@ -609,7 +609,7 @@ class BananaRipenessApp {
         thumbsDown.className = 'btn btn-outline-danger';
         thumbsDown.textContent = 'No';
         thumbsDown.addEventListener('click', function() {
-            self.submitFeedback(capturedStage, capturedHue, 'negative');
+            self.submitFeedback(capturedStage, capturedHue, 'down');
         });
         btnGroup.appendChild(thumbsDown);
 
@@ -623,7 +623,11 @@ class BananaRipenessApp {
         resultArea.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
 
-    submitFeedback(stage, hue, feedback) {
+    async submitFeedback(stage, hue, feedback) {
+        // Wait for device registration to complete before sending feedback
+        if (this.registrationPromise) {
+            await this.registrationPromise;
+        }
         var userId = localStorage.getItem('gobananas_user_id');
         fetch('/api/feedback', {
             method: 'POST',
@@ -704,7 +708,16 @@ class BananaRipenessApp {
     async registerDevice() {
         var deviceId = localStorage.getItem('gobananas_device_id');
         if (!deviceId) {
-            deviceId = crypto.randomUUID();
+            // Fallback for environments without crypto.randomUUID (older WebViews, non-HTTPS)
+            if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+                deviceId = crypto.randomUUID();
+            } else {
+                deviceId = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+                    var r = Math.random() * 16 | 0;
+                    var v = c === 'x' ? r : (r & 0x3 | 0x8);
+                    return v.toString(16);
+                });
+            }
             localStorage.setItem('gobananas_device_id', deviceId);
         }
 
@@ -714,6 +727,7 @@ class BananaRipenessApp {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ device_id: deviceId })
             });
+            if (!response.ok) throw new Error('HTTP ' + response.status);
             var data = await response.json();
             localStorage.setItem('gobananas_user_id', data.user_id);
             localStorage.setItem('gobananas_premium', String(data.is_premium));
