@@ -7,6 +7,7 @@ from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from dotenv import load_dotenv
 from config import config
+from flask_migrate import Migrate
 from models import db, User, Scan, Alert
 from utils.color_detection import (
     detect_banana_ripeness, 
@@ -26,11 +27,14 @@ load_dotenv()
 config_name = os.environ.get('FLASK_ENV', 'production')
 app = Flask(__name__)
 app.config.from_object(config[config_name])
-app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get(
-    'DATABASE_URL', 'sqlite:///gobananas.db'
-)
+# Handle Render's postgres:// vs SQLAlchemy's required postgresql://
+db_url = os.environ.get('DATABASE_URL', 'sqlite:///gobananas.db')
+if db_url.startswith('postgres://'):
+    db_url = db_url.replace('postgres://', 'postgresql://', 1)
+app.config['SQLALCHEMY_DATABASE_URI'] = db_url
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db.init_app(app)
+migrate = Migrate(app, db)
 
 # Initialize rate limiter
 limiter = Limiter(
