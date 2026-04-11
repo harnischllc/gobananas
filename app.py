@@ -7,6 +7,7 @@ from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from dotenv import load_dotenv
 from config import config
+from models import db, User, Scan, Alert
 from utils.color_detection import (
     detect_banana_ripeness, 
     extract_dominant_color, 
@@ -16,6 +17,7 @@ from utils.color_detection import (
     STAGE_INFO
 )
 from utils.validators import validate_uploaded_file, validate_hex_color, ValidationError
+from utils.constants import STORAGE_TIPS, NUTRITION
 
 # Load environment variables
 load_dotenv()
@@ -24,6 +26,11 @@ load_dotenv()
 config_name = os.environ.get('FLASK_ENV', 'production')
 app = Flask(__name__)
 app.config.from_object(config[config_name])
+app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get(
+    'DATABASE_URL', 'sqlite:///gobananas.db'
+)
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+db.init_app(app)
 
 # Initialize rate limiter
 limiter = Limiter(
@@ -201,9 +208,11 @@ def api_classify_banana():
             'stage_info': stage_info,
             'days_until_peak': days_until_peak,
             'hue': round(hue, 1),
+            'storage_tips': STORAGE_TIPS,
+            'nutrition': NUTRITION.get(stage, {}),
             'success': True
         }
-        
+
         app.logger.info(f'API Classification success: Stage {stage}')
         return jsonify(result)
     
