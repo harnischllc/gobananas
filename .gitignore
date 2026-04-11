@@ -4,3 +4,8 @@ __pycache__/
 .env
 uploads/
 .DS_Store
+node_modules/
+ios/App/Pods/
+android/.gradle/
+android/build/
+logs/

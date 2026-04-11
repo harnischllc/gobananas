@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Go Bananas</string>
+    <string name="title_activity_main">Go Bananas</string>
+    <string name="package_name">com.harnischllc.gobananas</string>
+    <string name="custom_url_scheme">com.harnischllc.gobananas</string>
+</resources>
