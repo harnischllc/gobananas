@@ -617,6 +617,28 @@ class BananaRipenessApp {
         cardBody.appendChild(feedbackArea);
 
         card.appendChild(cardBody);
+
+        // Remind me button (premium only, not at peak)
+        var isPremium = localStorage.getItem('gobananas_premium') === 'true';
+        if (isPremium && data.days_until_peak > 0) {
+            var remindSection = document.createElement('div');
+            remindSection.className = 'text-center mt-3';
+
+            var remindBtn = document.createElement('button');
+            remindBtn.className = 'btn btn-outline-info btn-sm';
+            remindBtn.textContent = 'Remind me when ready';
+
+            var selfRemind = this;
+            remindBtn.addEventListener('click', function() {
+                remindBtn.disabled = true;
+                remindBtn.textContent = 'Setting reminder...';
+                selfRemind.createRipenessAlert(data.stage, data.hue, data.days_until_peak);
+            });
+
+            remindSection.appendChild(remindBtn);
+            card.appendChild(remindSection);
+        }
+
         resultArea.appendChild(card);
 
         // Scroll into view
@@ -648,6 +670,47 @@ class BananaRipenessApp {
             }
         })
         .catch(function() {});
+    }
+
+    async createRipenessAlert(currentStage, hue, daysUntilPeak) {
+        try {
+            // Request push notification permission if in Capacitor
+            var pushToken = 'web-placeholder';
+            if (typeof window.Capacitor !== 'undefined') {
+                try {
+                    var PushNotifications = (await import('@capacitor/push-notifications')).PushNotifications;
+                    var permResult = await PushNotifications.requestPermissions();
+                    if (permResult.receive === 'granted') {
+                        await PushNotifications.register();
+                        // In a real implementation, listen for registration event to get token
+                        pushToken = 'cap-token-pending';
+                    }
+                } catch (pushErr) {
+                    console.warn('Push notification setup failed:', pushErr);
+                }
+            }
+
+            var userId = localStorage.getItem('gobananas_user_id');
+            var response = await fetch('/api/alerts', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    user_id: userId,
+                    scan_id: 0,
+                    target_stage: 6,
+                    current_stage: currentStage,
+                    push_token: pushToken
+                })
+            });
+
+            if (!response.ok) throw new Error('HTTP ' + response.status);
+            var data = await response.json();
+
+            this.showAlert('Reminder set! We will notify you in about ' + data.days_until_alert + ' days.', 'success');
+        } catch (e) {
+            console.error('Alert creation failed:', e);
+            this.showAlert('Could not set reminder. Please try again.', 'warning');
+        }
     }
 
     saveToHistory(data) {

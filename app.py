@@ -2,7 +2,7 @@ from flask import Flask, render_template, request, jsonify
 import os
 import logging
 from logging.handlers import RotatingFileHandler
-from datetime import datetime
+from datetime import datetime, timedelta
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from dotenv import load_dotenv
@@ -106,6 +106,11 @@ def about():
 def api_docs():
     """Simple API documentation page for available endpoints"""
     return render_template('api_docs.html')
+
+@app.route('/privacy')
+def privacy():
+    """Privacy policy page required for app store submissions"""
+    return render_template('privacy.html')
 
 @app.route('/health')
 def health_check():
@@ -317,6 +322,51 @@ def register_device():
         app.logger.error(f'User registration error: {str(e)}', exc_info=True)
         db.session.rollback()
         return jsonify({'error': 'Failed to register device'}), 500
+
+
+@app.route('/api/alerts', methods=['POST'])
+@limiter.limit("10 per minute")
+def create_alert():
+    """Create a ripeness alert for push notification."""
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({'error': 'JSON body required'}), 400
+
+        required = ['user_id', 'scan_id', 'target_stage', 'push_token']
+        for field in required:
+            if field not in data:
+                return jsonify({'error': f'Missing required field: {field}'}), 400
+
+        # Validate target_stage
+        target_stage = data['target_stage']
+        if not isinstance(target_stage, int) or target_stage < 1 or target_stage > 7:
+            return jsonify({'error': 'target_stage must be an integer between 1 and 7'}), 400
+
+        current_stage = data.get('current_stage', 1)
+        days = estimate_days_until_peak(current_stage)
+        notify_at = datetime.now() + timedelta(days=max(1, days))
+
+        alert = Alert(
+            user_id=data['user_id'],
+            scan_id=data['scan_id'],
+            target_stage=target_stage,
+            push_token=data['push_token'],
+            notify_at=notify_at
+        )
+        db.session.add(alert)
+        db.session.commit()
+
+        return jsonify({
+            'success': True,
+            'alert_id': alert.id,
+            'notify_at': notify_at.isoformat(),
+            'days_until_alert': max(1, days)
+        })
+    except Exception as e:
+        app.logger.error(f'Alert creation error: {str(e)}', exc_info=True)
+        db.session.rollback()
+        return jsonify({'error': 'Failed to create alert'}), 500
 
 
 if __name__ == '__main__':
