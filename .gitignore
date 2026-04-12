@@ -9,3 +9,6 @@ ios/App/Pods/
 android/.gradle/
 android/build/
 logs/
+instance/
+.claude/
+ios/App/App.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/
