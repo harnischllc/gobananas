@@ -2,477 +2,220 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Go Bananas - Ripeness Detection</title>
-    
+
     <!-- Favicon and App Icons -->
     <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='favicon.svg') }}">
     <link rel="icon" type="image/png" href="{{ url_for('static', filename='favicon.png') }}">
     <link rel="apple-touch-icon" href="{{ url_for('static', filename='apple-touch-icon.png') }}">
     <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
-    
+
     <!-- Meta tags for PWA -->
-    <meta name="theme-color" content="#FFD700">
+    <meta name="theme-color" content="#FFE135">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <meta name="apple-mobile-web-app-title" content="Go Bananas">
-    
+
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 <body>
     <div class="container">
-        <div class="row justify-content-center">
-            <div class="col-md-8">
-                <!-- Header Section -->
-                <div class="text-center mt-4 mb-4">
-                    <h1 class="display-4 fw-bold text-warning">🍌 Go Bananas</h1>
-                    <h2 class="h4 text-muted mb-3">Banana Ripeness Detector</h2>
-                    <p class="lead">Upload a banana photo or pick a color to estimate ripeness</p>
-                </div>
+        <!-- Header -->
+        <div class="app-header">
+            <svg class="banana-icon" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                <path d="M52 12c-2-4-8-8-16-6C28 8 20 16 14 26c-6 10-8 22-4 28 2 3 5 4 8 2 4-2 6-6 8-10 4-8 10-18 18-24 4-3 8-4 10-4 1 0 2-2 0-6h-2z" fill="#FFE135" stroke="#8B6914" stroke-width="2" stroke-linecap="round"/>
+                <path d="M36 6c4-2 8-1 12 2" stroke="#4CAF50" stroke-width="2.5" stroke-linecap="round"/>
+                <!-- Character spots -->
+                <circle cx="24" cy="34" r="1.5" fill="#D4A017" opacity="0.6"/>
+                <circle cx="30" cy="28" r="1" fill="#D4A017" opacity="0.4"/>
+                <circle cx="20" cy="40" r="1.2" fill="#D4A017" opacity="0.5"/>
+            </svg>
+            <h1 class="app-title">Go Bananas</h1>
+            <p class="app-subtitle">Snap. Scan. Know your banana.</p>
+        </div>
 
-                <!-- Main Form Card -->
-                <div class="card shadow-lg">
-                    <div class="card-body p-4">
-                        <form id="bananaForm" action="/classify" method="POST" enctype="multipart/form-data">
-                            <!-- Upload Option -->
-                            <div class="mb-4">
-                                <h5 class="mb-3">📸 Upload Banana Photo</h5>
-                                <div class="upload-area" id="uploadArea">
-                                    <div class="upload-content text-center">
-                                        <i class="fas fa-camera fa-3x text-muted mb-3"></i>
-                                        <p class="mb-2">Click to upload or drag & drop</p>
-                                        <p class="text-muted small">PNG, JPG, JPEG, GIF, BMP (max 10MB)</p>
-                                    </div>
-                                    <input type="file" class="form-control d-none" id="bananaImage" name="image" 
-                                           accept="image/*" capture="environment">
-                                </div>
-                                <div class="mt-2 d-flex gap-2">
-                                    <button type="button" class="btn btn-outline-secondary btn-sm" id="btnUploadFile">
-                                        <i class="fas fa-upload me-1"></i>Upload from device
-                                    </button>
-                                    <button type="button" class="btn btn-outline-primary btn-sm" id="btnTakePhoto">
-                                        <i class="fas fa-camera me-1"></i>Take Photo
-                                    </button>
-                                </div>
-                                <div id="imagePreview" class="mt-3 d-none">
-                                    <img id="previewImg" class="img-thumbnail" style="max-width: 200px; max-height: 200px;">
-                                    <div class="mt-2">
-                                        <button type="button" class="btn btn-sm btn-outline-danger" id="removeImage">Remove</button>
-                                    </div>
-                                </div>
-                            </div>
+        <!-- Main Form Card -->
+        <div class="card card-primary">
+            <div class="card-body">
+                <form id="bananaForm" action="/classify" method="POST" enctype="multipart/form-data">
 
-                            <!-- Divider with state indicator -->
-                            <div class="text-center mb-4">
-                                <span class="text-muted" id="methodIndicator">
-                                    <span id="imageActive" class="d-none">📸 Using uploaded image</span>
-                                    <span id="colorActive">🎨 Using selected color</span>
-                                    <span id="neitherActive" class="d-none">Upload image OR pick color</span>
-                                </span>
-                            </div>
-
-                            <!-- Banana Ripeness Slider -->
-                            <div class="mb-4">
-                                <h5 class="mb-3">🍌 Select Banana Ripeness</h5>
-                                <p class="text-muted small mb-3">Slide to match your banana's ripeness level</p>
-                                
-                                <!-- Hidden inputs to store selected values -->
-                                <input type="hidden" id="colorPicker" name="color" value="#9ACD32">
-                                <input type="hidden" id="bananaStage" name="stage" value="3">
-                                
-                                <!-- Simple Slider Container -->
-                                <div class="banana-slider-container">
-                                    <!-- Slider -->
-                                    <div class="slider-container">
-                                        <input type="range" id="bananaSlider" class="banana-slider" 
-                                               min="1" max="6" value="3" step="1">
-                                        <div class="slider-labels">
-                                            <span>Green</span>
-                                            <span>Ripe</span>
-                                            <span>Overripe</span>
-                                        </div>
-                                    </div>
-                                    
-                                    <!-- Selected Display -->
-                                    <div class="selected-banana-display">
-                                        <div class="selected-color-circle" id="selectedColorCircle" style="background-color: #9ACD32;"></div>
-                                        <div class="selected-banana-info">
-                                            <strong id="selectedBananaStage">Stage 3: Yellowish</strong>
-                                            <div class="text-muted" id="selectedBananaDescription">Perfect for eating fresh</div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Submit Button -->
-                            <div class="text-center">
-                                <button type="submit" class="btn btn-warning btn-lg px-5" id="submitBtn">
-                                    <span class="spinner-border spinner-border-sm d-none" id="loadingSpinner"></span>
-                                    <i class="fas fa-search me-2"></i>
-                                    Analyze Ripeness
-                                </button>
-                            </div>
-                        </form>
+                    <!-- Upload Section -->
+                    <p class="section-title">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: -2px; margin-right: 4px;">
+                            <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+                            <circle cx="12" cy="13" r="4"/>
+                        </svg>
+                        Photo
+                    </p>
+                    <div class="upload-area" id="uploadArea">
+                        <svg class="upload-icon" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#A0854A" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                            <circle cx="8.5" cy="8.5" r="1.5"/>
+                            <polyline points="21 15 16 10 5 21"/>
+                        </svg>
+                        <p>Tap to upload or drag a photo</p>
+                        <p class="upload-hint">PNG, JPG, JPEG, GIF, BMP (max 10MB)</p>
+                        <input type="file" class="form-control d-none" id="bananaImage" name="image"
+                               accept="image/*">
                     </div>
-                </div>
+                    <div class="camera-buttons mt-2">
+                        <button type="button" class="btn btn-outline-secondary btn-sm" id="btnUploadFile">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: -2px;">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                                <polyline points="17 8 12 3 7 8"/>
+                                <line x1="12" y1="3" x2="12" y2="15"/>
+                            </svg>
+                            Upload
+                        </button>
+                        <button type="button" class="btn btn-outline-primary btn-sm" id="btnTakePhoto">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: -2px;">
+                                <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+                                <circle cx="12" cy="13" r="4"/>
+                            </svg>
+                            Camera
+                        </button>
+                    </div>
+                    <div id="imagePreview" class="mt-3 d-none text-center">
+                        <img id="previewImg" class="img-thumbnail">
+                        <div class="mt-2">
+                            <button type="button" class="btn btn-outline-secondary btn-sm" id="removeImage">Remove</button>
+                        </div>
+                    </div>
 
-                <!-- How It Works Card -->
-                <div class="card mt-4">
-                    <div class="card-body">
-                        <h5 class="card-title">🔬 How It Works</h5>
-                        <div class="row">
-                            <div class="col-md-6">
-                                <h6>For Photos:</h6>
-                                <ol>
-                                    <li>Upload a clear photo of your banana</li>
-                                    <li>Our AI extracts the dominant color</li>
-                                    <li>Color is mapped to ripeness stage</li>
-                                    <li>Get detailed analysis and recommendations</li>
-                                </ol>
+                    <!-- Method Indicator -->
+                    <div class="method-indicator my-3">
+                        <span id="methodIndicator">
+                            <span id="imageActive" class="d-none">Using uploaded image</span>
+                            <span id="colorActive">or pick a ripeness stage</span>
+                            <span id="neitherActive" class="d-none">Upload image or pick stage</span>
+                        </span>
+                    </div>
+
+                    <!-- Banana Ripeness Slider -->
+                    <p class="section-title">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: -2px; margin-right: 4px;">
+                            <line x1="4" y1="21" x2="4" y2="14"/>
+                            <line x1="4" y1="10" x2="4" y2="3"/>
+                            <line x1="12" y1="21" x2="12" y2="12"/>
+                            <line x1="12" y1="8" x2="12" y2="3"/>
+                            <line x1="20" y1="21" x2="20" y2="16"/>
+                            <line x1="20" y1="12" x2="20" y2="3"/>
+                            <line x1="1" y1="14" x2="7" y2="14"/>
+                            <line x1="9" y1="8" x2="15" y2="8"/>
+                            <line x1="17" y1="16" x2="23" y2="16"/>
+                        </svg>
+                        Ripeness Stage
+                    </p>
+                    <div class="banana-slider-container">
+                        <input type="hidden" id="colorPicker" name="color" value="#9ACD32">
+                        <input type="hidden" id="bananaStage" name="stage" value="3">
+
+                        <div class="slider-container">
+                            <input type="range" id="bananaSlider" class="banana-slider"
+                                   min="1" max="6" value="3" step="1"
+                                   aria-label="Select banana ripeness stage">
+                            <div class="slider-labels">
+                                <span>Green</span>
+                                <span>Ripe</span>
+                                <span>Overripe</span>
                             </div>
-                            <div class="col-md-6">
-                                <h6>For Color Picker:</h6>
-                                <ol>
-                                    <li>Select the color that matches your banana</li>
-                                    <li>Color is converted to hue value</li>
-                                    <li>Hue is mapped to ripeness stage</li>
-                                    <li>Get instant ripeness estimation</li>
-                                </ol>
+                        </div>
+
+                        <div class="selected-banana-display">
+                            <div class="selected-color-circle" id="selectedColorCircle" style="background-color: #9ACD32;"></div>
+                            <div class="selected-banana-info">
+                                <strong id="selectedBananaStage">Stage 3: Yellowish</strong>
+                                <div class="text-muted" id="selectedBananaDescription">Perfect for eating fresh</div>
                             </div>
                         </div>
                     </div>
-                </div>
 
-                <!-- Quick Color Guide -->
-                <div class="card mt-4">
-                    <div class="card-body">
-                        <h5 class="card-title">🌈 Banana Color Guide</h5>
-                        <div class="row text-center">
-                            <div class="col-md-3 col-6 mb-3">
-                                <div class="color-guide-item">
-                                    <div class="color-circle" style="background-color: #228B22; cursor: pointer;"></div>
-                                    <small>Stage 1-2<br>Green</small>
-                                </div>
-                            </div>
-                            <div class="col-md-3 col-6 mb-3">
-                                <div class="color-guide-item">
-                                    <div class="color-circle" style="background-color: #9ACD32; cursor: pointer;"></div>
-                                    <small>Stage 3-4<br>Light Green</small>
-                                </div>
-                            </div>
-                            <div class="col-md-3 col-6 mb-3">
-                                <div class="color-guide-item">
-                                    <div class="color-circle" style="background-color: #FFD700; cursor: pointer;"></div>
-                                    <small>Stage 5-6<br>Yellow</small>
-                                </div>
-                            </div>
-                            <div class="col-md-3 col-6 mb-3">
-                                <div class="color-guide-item">
-                                    <div class="color-circle" style="background-color: #D2691E; cursor: pointer;"></div>
-                                    <small>Stage 7<br>Brown</small>
-                                </div>
-                            </div>
+                    <!-- Submit -->
+                    <div class="mt-4">
+                        <button type="submit" class="btn btn-primary-banana" id="submitBtn">
+                            <span class="spinner-border spinner-border-sm d-none" id="loadingSpinner"></span>
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="11" cy="11" r="8"/>
+                                <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                            </svg>
+                            Analyze Ripeness
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Result Area (populated by JavaScript) -->
+        <div id="resultArea" class="d-none"></div>
+
+        <!-- Color Guide -->
+        <div class="card card-flat">
+            <div class="card-body">
+                <p class="section-title">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: -2px; margin-right: 4px;">
+                        <circle cx="12" cy="12" r="10"/>
+                        <line x1="12" y1="16" x2="12" y2="12"/>
+                        <line x1="12" y1="8" x2="12.01" y2="8"/>
+                    </svg>
+                    Ripeness Guide
+                </p>
+                <div class="row text-center g-2">
+                    <div class="col-3">
+                        <div class="color-guide-item">
+                            <div class="color-circle" style="background-color: #228B22;" role="button" aria-label="Stage 1-2: Green" tabindex="0"></div>
+                            <small>Stage 1-2<br>Green</small>
                         </div>
                     </div>
-                </div>
-
-                <!-- Recent Analyses -->
-                <div class="card mt-4" id="recentCard" style="display:none;">
-                    <div class="card-body">
-                        <div class="d-flex justify-content-between align-items-center mb-2">
-                            <h5 class="card-title mb-0">🕒 Recent Analyses</h5>
-                            <button type="button" class="btn btn-sm btn-outline-secondary" id="clearHistoryBtn">Clear</button>
-                        </div>
-                        <div id="recentList" class="recent-list row g-3">
-                            <!-- Rendered by JS -->
+                    <div class="col-3">
+                        <div class="color-guide-item">
+                            <div class="color-circle" style="background-color: #9ACD32;" role="button" aria-label="Stage 3-4: Light Green" tabindex="0"></div>
+                            <small>Stage 3-4<br>Yellow-Green</small>
                         </div>
                     </div>
-                </div>
-
-                <!-- Footer Links -->
-                <div class="text-center mt-4 mb-4">
-                    <a href="/about" class="btn btn-outline-secondary me-3">
-                        <i class="fas fa-info-circle me-1"></i>About
-                    </a>
-                    <a href="/api/docs" class="btn btn-outline-info">
-                        <i class="fas fa-code me-1"></i>API Docs
-                    </a>
+                    <div class="col-3">
+                        <div class="color-guide-item">
+                            <div class="color-circle" style="background-color: #FFD700;" role="button" aria-label="Stage 5-6: Yellow" tabindex="0"></div>
+                            <small>Stage 5-6<br>Yellow</small>
+                        </div>
+                    </div>
+                    <div class="col-3">
+                        <div class="color-guide-item">
+                            <div class="color-circle" style="background-color: #8B4513;" role="button" aria-label="Stage 7: Brown" tabindex="0"></div>
+                            <small>Stage 7<br>Brown</small>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
+
+        <!-- Recent Analyses -->
+        <div class="card card-flat" id="recentCard" style="display:none;">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <p class="section-title mb-0">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: -2px; margin-right: 4px;">
+                            <circle cx="12" cy="12" r="10"/>
+                            <polyline points="12 6 12 12 16 14"/>
+                        </svg>
+                        Recent
+                    </p>
+                    <button type="button" class="btn btn-outline-secondary btn-sm" id="clearHistoryBtn" style="padding: 4px 12px; min-height: 32px;">Clear</button>
+                </div>
+                <div id="recentList" class="recent-list row g-2"></div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="app-footer">
+            <a href="/about" class="btn btn-outline-secondary">About</a>
+            <a href="/privacy" class="btn btn-outline-secondary">Privacy</a>
+        </div>
     </div>
 
-    <!-- Font Awesome for icons -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    
-    <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
-    
-    <!-- Custom JavaScript -->
     <script src="{{ url_for('static', filename='js/main.js') }}"></script>
-    
-    <script>
-        // Enhanced form handling for the new interface
-        document.addEventListener('DOMContentLoaded', function() {
-            const uploadArea = document.getElementById('uploadArea');
-            const fileInput = document.getElementById('bananaImage');
-            const imagePreview = document.getElementById('imagePreview');
-            const previewImg = document.getElementById('previewImg');
-            const removeImageBtn = document.getElementById('removeImage');
-            const colorPicker = document.getElementById('colorPicker');
-            const form = document.getElementById('bananaForm');
-            const submitBtn = document.getElementById('submitBtn');
-            const loadingSpinner = document.getElementById('loadingSpinner');
-
-            // Upload area click handler
-            uploadArea.addEventListener('click', () => fileInput.click());
-
-            // Drag and drop functionality
-            uploadArea.addEventListener('dragover', (e) => {
-                e.preventDefault();
-                uploadArea.classList.add('drag-over');
-            });
-
-            uploadArea.addEventListener('dragleave', () => {
-                uploadArea.classList.remove('drag-over');
-            });
-
-            uploadArea.addEventListener('drop', (e) => {
-                e.preventDefault();
-                uploadArea.classList.remove('drag-over');
-                const files = e.dataTransfer.files;
-                if (files.length > 0) {
-                    fileInput.files = files;
-                    handleImageUpload(files[0]);
-                }
-            });
-
-            // File input change handler
-            fileInput.addEventListener('change', (e) => {
-                if (e.target.files.length > 0) {
-                    handleImageUpload(e.target.files[0]);
-                }
-            });
-
-            // Remove image handler
-            removeImageBtn.addEventListener('click', () => {
-                fileInput.value = '';
-                imagePreview.classList.add('d-none');
-                uploadArea.classList.remove('d-none');
-            });
-
-            // Form submission handler
-            form.addEventListener('submit', (e) => {
-                e.preventDefault();
-                
-                const hasImage = fileInput.files.length > 0;
-                const hasColor = colorPicker.value;
-                
-                if (!hasImage && !hasColor) {
-                    alert('Please upload an image or select a color!');
-                    return;
-                }
-                
-                // Show loading state
-                submitBtn.disabled = true;
-                loadingSpinner.classList.remove('d-none');
-                
-                // Submit form
-                form.submit();
-            });
-
-            function handleImageUpload(file) {
-                if (file && file.type.startsWith('image/')) {
-                    const reader = new FileReader();
-                    reader.onload = (e) => {
-                        previewImg.src = e.target.result;
-                        imagePreview.classList.remove('d-none');
-                        uploadArea.classList.add('d-none');
-                    };
-                    reader.readAsDataURL(file);
-                }
-            }
-
-            // Simple slider functionality
-            const slider = document.getElementById('bananaSlider');
-            const stageInput = document.getElementById('bananaStage');
-            const colorCircle = document.getElementById('selectedColorCircle');
-            const stageText = document.getElementById('selectedBananaStage');
-            const descText = document.getElementById('selectedBananaDescription');
-            
-            const stageData = {
-                1: { color: '#228B22', name: 'Stage 1: Green', description: 'Very firm, not sweet yet' },
-                2: { color: '#32CD32', name: 'Stage 2: Light Green', description: 'Still firm, slightly sweet' },
-                3: { color: '#9ACD32', name: 'Stage 3: Yellowish', description: 'Perfect for eating fresh' },
-                4: { color: '#ADFF2F', name: 'Stage 4: Light Yellow', description: 'Sweet and soft' },
-                5: { color: '#FFD700', name: 'Stage 5: Golden', description: 'Very sweet, ideal for eating' },
-                6: { color: '#FFA500', name: 'Stage 6: Overripe', description: 'Perfect for baking' }
-            };
-            
-            function updateSlider(value) {
-                const stage = parseInt(value);
-                const data = stageData[stage];
-                
-                if (colorPicker) colorPicker.value = data.color;
-                if (stageInput) stageInput.value = stage;
-                if (colorCircle) colorCircle.style.backgroundColor = data.color;
-                if (stageText) stageText.textContent = data.name;
-                if (descText) descText.textContent = data.description;
-            }
-            
-            if (slider) {
-                slider.addEventListener('input', function() {
-                    updateSlider(this.value);
-                });
-                
-                // Initialize
-                updateSlider(slider.value);
-            }
-
-            // Recent history render
-            try {
-                const recentCard = document.getElementById('recentCard');
-                const recentList = document.getElementById('recentList');
-                const clearHistoryBtn = document.getElementById('clearHistoryBtn');
-                if (recentCard && recentList) {
-                    const history = JSON.parse(localStorage.getItem('gobananas_history') || '[]');
-                    renderRecent(history);
-                    recentCard.style.display = history.length ? '' : 'none';
-
-                    if (clearHistoryBtn) {
-                        clearHistoryBtn.addEventListener('click', function() {
-                            localStorage.removeItem('gobananas_history');
-                            recentList.innerHTML = '';
-                            recentCard.style.display = 'none';
-                        });
-                    }
-                }
-
-                function renderRecent(items) {
-                    recentList.innerHTML = '';
-                    items.slice(0,3).forEach(item => {
-                        const col = document.createElement('div');
-                        col.className = 'col-md-4 col-12';
-                        col.innerHTML = `
-                            <div class="recent-item card h-100 p-2" role="button" aria-label="Load previous analysis">
-                                <div class="d-flex align-items-center">
-                                    <div class="recent-color me-3" style="background:${hslToHex(item.hue || 60, 0.7, 0.5)}"></div>
-                                    <div>
-                                        <div class="fw-semibold">Stage ${item.stage}</div>
-                                        <div class="small text-muted">${new Date(item.timestamp).toLocaleString()}</div>
-                                    </div>
-                                </div>
-                            </div>`;
-                        col.querySelector('.recent-item').addEventListener('click', function() {
-                            const hex = hslToHex(item.hue || 60, 0.7, 0.5);
-                            colorPicker.value = hex;
-                            updateSlider(getStageFromColor(hex));
-                            window.scrollTo({ top: document.getElementById('bananaForm').offsetTop - 80, behavior: 'smooth' });
-                        });
-                        recentList.appendChild(col);
-                    });
-                }
-
-                function hslToHex(h, s, l) {
-                    const a = s * Math.min(l, 1 - l);
-                    const f = (n) => {
-                        const k = (n + h / 30) % 12;
-                        const c = l - a * Math.max(-1, Math.min(k - 3, Math.min(9 - k, 1)));
-                        return Math.round(255 * c).toString(16).padStart(2, '0');
-                    };
-                    return `#${f(0)}${f(8)}${f(4)}`.toUpperCase();
-                }
-
-                function getStageFromColor(hex) {
-                    for (let stage in stageData) {
-                        if (stageData[stage].color.toLowerCase() === hex.toLowerCase()) {
-                            return stage;
-                        }
-                    }
-                    return 3; // Default to stage 3
-                }
-            } catch (e) {
-                console.warn('Recent history unavailable', e);
-            }
-        });
-    </script>
-
-    <style>
-        .upload-area {
-            border: 2px dashed #dee2e6;
-            border-radius: 10px;
-            padding: 2rem;
-            text-align: center;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            background-color: #f8f9fa;
-        }
-
-        .upload-area:hover {
-            border-color: #ffd700;
-            background-color: #fffbf0;
-        }
-
-        .upload-area.drag-over {
-            border-color: #ffd700;
-            background-color: #fffbf0;
-            transform: scale(1.02);
-        }
-
-        .color-swatch {
-            display: flex;
-            align-items: center;
-            padding: 1rem;
-            border: 1px solid #dee2e6;
-            border-radius: 10px;
-            background-color: #f8f9fa;
-        }
-
-        .swatch-color {
-            width: 50px;
-            height: 50px;
-            border-radius: 50%;
-            margin-right: 1rem;
-            border: 3px solid #fff;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-
-        .swatch-info {
-            flex: 1;
-        }
-
-        .color-guide-item {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-
-        .color-circle {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            margin-bottom: 0.5rem;
-            border: 2px solid #fff;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-
-        @media (max-width: 768px) {
-            .upload-area {
-                padding: 1.5rem;
-            }
-            
-            .color-swatch {
-                flex-direction: column;
-                text-align: center;
-            }
-            
-            .swatch-color {
-                margin-right: 0;
-                margin-bottom: 1rem;
-            }
-        }
-    </style>
-
+    <!-- All event handling is in main.js BananaRipenessApp -->
 </body>
 </html>

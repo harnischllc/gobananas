@@ -1,0 +1,17 @@
+{
+  "appId": "com.harnischllc.gobananas",
+  "appName": "Go Bananas",
+  "webDir": "static",
+  "server": {
+    "url": "https://gobananas-cmml.onrender.com",
+    "cleartext": false
+  },
+  "plugins": {
+    "Camera": {
+      "presentationStyle": "fullScreen"
+    },
+    "PushNotifications": {
+      "presentationOptions": ["badge", "sound", "alert"]
+    }
+  }
+}

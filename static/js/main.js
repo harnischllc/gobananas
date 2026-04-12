@@ -5,6 +5,7 @@ class BananaRipenessApp {
         this.initializeElements();
         this.bindEvents();
         this.initializeAnimations();
+        this.registrationPromise = this.registerDevice();
     }
 
     initializeElements() {
@@ -122,6 +123,8 @@ class BananaRipenessApp {
 
     triggerFileInput() {
         if (this.fileInput) {
+            // Remove capture attribute so the OS shows the file picker, not the camera
+            this.fileInput.removeAttribute('capture');
             this.fileInput.click();
         }
     }
@@ -319,13 +322,49 @@ class BananaRipenessApp {
         return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
     }
 
-    triggerCameraCapture() {
-        // Prefer facingMode if supported
-        if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-            this.triggerFileInput(); // fallback to file input
-            return;
+    async triggerCameraCapture() {
+        try {
+            if (typeof window.Capacitor !== 'undefined') {
+                var Camera = (await import('@capacitor/camera')).Camera;
+                var CameraResultType = (await import('@capacitor/camera')).CameraResultType;
+                var CameraSource = (await import('@capacitor/camera')).CameraSource;
+                var photo = await Camera.getPhoto({
+                    quality: 80,
+                    resultType: CameraResultType.Base64,
+                    source: CameraSource.Camera,
+                    width: 800
+                });
+                var blob = this.base64ToBlob(photo.base64String, 'image/' + photo.format);
+                var file = new File([blob], 'banana.' + photo.format, { type: 'image/' + photo.format });
+                var dt = new DataTransfer();
+                dt.items.add(file);
+                this.fileInput.files = dt.files;
+                this.validateAndPreviewImage(file);
+            } else {
+                // Set capture attribute so the OS opens the camera directly
+                this.fileInput.setAttribute('capture', 'environment');
+                this.fileInput.click();
+                // Remove it after so subsequent Upload clicks open the file picker
+                this.fileInput.removeAttribute('capture');
+            }
+        } catch (e) {
+            console.error('Camera error:', e);
+            this.triggerFileInput();
         }
-        this.triggerFileInput();
+    }
+
+    base64ToBlob(base64, mime) {
+        var byteChars = atob(base64);
+        var byteArrays = [];
+        for (var offset = 0; offset < byteChars.length; offset += 512) {
+            var slice = byteChars.slice(offset, offset + 512);
+            var byteNumbers = new Array(slice.length);
+            for (var i = 0; i < slice.length; i++) {
+                byteNumbers[i] = slice.charCodeAt(i);
+            }
+            byteArrays.push(new Uint8Array(byteNumbers));
+        }
+        return new Blob(byteArrays, { type: mime });
     }
 
     setupDragAndDrop() {
@@ -429,68 +468,264 @@ class BananaRipenessApp {
 
     submitForm() {
         const formData = new FormData(this.form);
-        
-        fetch('/classify', {
+
+        fetch('/api/classify', {
             method: 'POST',
             body: formData
         })
         .then(response => {
-            if (response.ok) {
-                return response.text();
-            }
-            throw new Error(`HTTP error! status: ${response.status}`);
+            if (!response.ok) throw new Error('HTTP ' + response.status);
+            return response.json();
         })
-        .then(html => {
-            // Smooth transition to result page
-            this.showTransition(() => {
-                document.body.innerHTML = html;
-            });
+        .then(data => {
+            this.setLoadingState(false);
+            if (data.error) {
+                this.showAlert(data.error, 'danger');
+                return;
+            }
+            this.displayResult(data);
+            this.saveToHistory(data);
         })
         .catch(error => {
             console.error('Error:', error);
             if (!navigator.onLine) {
                 this.showAlert('No internet connection. Please check your network.', 'danger');
             } else {
-                this.showAlert('Server error. Please try again later.', 'danger');
+                this.showAlert('Analysis failed. Please try again.', 'danger');
             }
             this.setLoadingState(false);
         });
     }
 
-    showTransition(callback) {
-        const overlay = document.createElement('div');
-        overlay.style.cssText = `
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(135deg, #FFE135 0%, #4CAF50 100%);
-            z-index: 9999;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            opacity: 0;
-            transition: opacity 0.3s ease;
-        `;
-        
-        overlay.innerHTML = `
-            <div style="text-align: center; color: white;">
-                <div class="spinner-border text-white mb-3" style="width: 3rem; height: 3rem;"></div>
-                <h4>Analyzing your banana...</h4>
-                <p>Please wait while we process your image</p>
-            </div>
-        `;
-        
-        document.body.appendChild(overlay);
-        
-        setTimeout(() => {
-            overlay.style.opacity = '1';
-        }, 50);
-        
-        setTimeout(() => {
-            callback();
-        }, 1000);
+    displayResult(data) {
+        var resultArea = document.getElementById('resultArea');
+        if (!resultArea) return;
+
+        // Clear previous results and show the area
+        while (resultArea.firstChild) {
+            resultArea.removeChild(resultArea.firstChild);
+        }
+        resultArea.classList.remove('d-none');
+
+        // Build the result card
+        var card = document.createElement('div');
+        card.className = 'card shadow-lg mt-4 mb-4';
+
+        var cardBody = document.createElement('div');
+        cardBody.className = 'card-body p-4 text-center';
+
+        // Stage number (big, bold, gold)
+        var stageNumber = document.createElement('div');
+        stageNumber.style.fontSize = '3rem';
+        stageNumber.style.fontWeight = 'bold';
+        stageNumber.style.color = '#FFD700';
+        stageNumber.textContent = 'Stage ' + data.stage;
+        cardBody.appendChild(stageNumber);
+
+        // Stage name (short name from stage_info, split on ' — ')
+        var stageName = document.createElement('h3');
+        stageName.className = 'mt-2';
+        var stageInfoParts = (data.stage_info || '').split(' — ');
+        stageName.textContent = stageInfoParts[0] || '';
+        cardBody.appendChild(stageName);
+
+        // Full description
+        var description = document.createElement('p');
+        description.className = 'text-muted mt-2';
+        description.textContent = data.stage_info || '';
+        cardBody.appendChild(description);
+
+        // Days until peak
+        var peakInfo = document.createElement('p');
+        peakInfo.className = 'fw-semibold mt-3';
+        if (data.days_until_peak === 0) {
+            peakInfo.textContent = 'At peak ripeness!';
+            peakInfo.style.color = '#4CAF50';
+        } else {
+            peakInfo.textContent = 'Days until peak ripeness: ' + data.days_until_peak;
+        }
+        cardBody.appendChild(peakInfo);
+
+        // Nutrition info if available
+        if (data.nutrition) {
+            var nutritionDiv = document.createElement('div');
+            nutritionDiv.className = 'mt-3 p-3 rounded';
+            nutritionDiv.style.backgroundColor = '#f8f9fa';
+
+            var nutritionTitle = document.createElement('h5');
+            nutritionTitle.textContent = 'Nutrition Info';
+            nutritionDiv.appendChild(nutritionTitle);
+
+            var nutritionList = document.createElement('div');
+            nutritionList.className = 'd-flex justify-content-around flex-wrap';
+
+            var items = [
+                { label: 'Starch', value: data.nutrition.starch_pct != null ? data.nutrition.starch_pct + '%' : null },
+                { label: 'Sugar', value: data.nutrition.sugar_pct != null ? data.nutrition.sugar_pct + '%' : null },
+                { label: 'GI Index', value: data.nutrition.gi_index != null ? String(data.nutrition.gi_index) : null }
+            ];
+
+            items.forEach(function(item) {
+                if (item.value != null) {
+                    var col = document.createElement('div');
+                    col.className = 'text-center m-2';
+                    var val = document.createElement('div');
+                    val.className = 'fw-bold';
+                    val.style.fontSize = '1.2rem';
+                    val.textContent = item.value;
+                    col.appendChild(val);
+                    var lbl = document.createElement('div');
+                    lbl.className = 'text-muted small';
+                    lbl.textContent = item.label;
+                    col.appendChild(lbl);
+                    nutritionList.appendChild(col);
+                }
+            });
+
+            nutritionDiv.appendChild(nutritionList);
+            cardBody.appendChild(nutritionDiv);
+        }
+
+        // Feedback area
+        var feedbackArea = document.createElement('div');
+        feedbackArea.id = 'feedbackArea';
+        feedbackArea.className = 'mt-4';
+
+        var feedbackLabel = document.createElement('p');
+        feedbackLabel.className = 'mb-2';
+        feedbackLabel.textContent = 'Was this accurate?';
+        feedbackArea.appendChild(feedbackLabel);
+
+        var btnGroup = document.createElement('div');
+        btnGroup.className = 'd-flex justify-content-center gap-3';
+
+        var thumbsUp = document.createElement('button');
+        thumbsUp.className = 'btn btn-outline-success';
+        thumbsUp.textContent = 'Yes';
+        var self = this;
+        var capturedStage = data.stage;
+        var capturedHue = data.hue;
+        thumbsUp.addEventListener('click', function() {
+            self.submitFeedback(capturedStage, capturedHue, 'up');
+        });
+        btnGroup.appendChild(thumbsUp);
+
+        var thumbsDown = document.createElement('button');
+        thumbsDown.className = 'btn btn-outline-danger';
+        thumbsDown.textContent = 'No';
+        thumbsDown.addEventListener('click', function() {
+            self.submitFeedback(capturedStage, capturedHue, 'down');
+        });
+        btnGroup.appendChild(thumbsDown);
+
+        feedbackArea.appendChild(btnGroup);
+        cardBody.appendChild(feedbackArea);
+
+        card.appendChild(cardBody);
+
+        // Remind me button (premium only, not at peak)
+        var isPremium = localStorage.getItem('gobananas_premium') === 'true';
+        if (isPremium && data.days_until_peak > 0) {
+            var remindSection = document.createElement('div');
+            remindSection.className = 'text-center mt-3';
+
+            var remindBtn = document.createElement('button');
+            remindBtn.className = 'btn btn-outline-info btn-sm';
+            remindBtn.textContent = 'Remind me when ready';
+
+            var selfRemind = this;
+            remindBtn.addEventListener('click', function() {
+                remindBtn.disabled = true;
+                remindBtn.textContent = 'Setting reminder...';
+                selfRemind.createRipenessAlert(data.stage, data.hue, data.days_until_peak);
+            });
+
+            remindSection.appendChild(remindBtn);
+            card.appendChild(remindSection);
+        }
+
+        resultArea.appendChild(card);
+
+        // Scroll into view
+        resultArea.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    async submitFeedback(stage, hue, feedback) {
+        // Wait for device registration to complete before sending feedback
+        if (this.registrationPromise) {
+            await this.registrationPromise;
+        }
+        var userId = localStorage.getItem('gobananas_user_id');
+        fetch('/api/feedback', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                user_id: userId,
+                hue: hue,
+                stage_predicted: stage,
+                feedback: feedback
+            })
+        })
+        .then(function(r) { return r.json(); })
+        .then(function() {
+            var feedbackArea = document.getElementById('feedbackArea');
+            if (feedbackArea) {
+                feedbackArea.textContent = 'Thanks for your feedback!';
+                feedbackArea.className = 'text-center text-success mt-3';
+            }
+        })
+        .catch(function() {});
+    }
+
+    async createRipenessAlert(currentStage, hue, daysUntilPeak) {
+        try {
+            // Request push notification permission if in Capacitor
+            var pushToken = 'web-placeholder';
+            if (typeof window.Capacitor !== 'undefined') {
+                try {
+                    var PushNotifications = (await import('@capacitor/push-notifications')).PushNotifications;
+                    var permResult = await PushNotifications.requestPermissions();
+                    if (permResult.receive === 'granted') {
+                        await PushNotifications.register();
+                        // In a real implementation, listen for registration event to get token
+                        pushToken = 'cap-token-pending';
+                    }
+                } catch (pushErr) {
+                    console.warn('Push notification setup failed:', pushErr);
+                }
+            }
+
+            var userId = localStorage.getItem('gobananas_user_id');
+            var response = await fetch('/api/alerts', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    user_id: userId,
+                    scan_id: 0,
+                    target_stage: 6,
+                    current_stage: currentStage,
+                    push_token: pushToken
+                })
+            });
+
+            if (!response.ok) throw new Error('HTTP ' + response.status);
+            var data = await response.json();
+
+            this.showAlert('Reminder set! We will notify you in about ' + data.days_until_alert + ' days.', 'success');
+        } catch (e) {
+            console.error('Alert creation failed:', e);
+            this.showAlert('Could not set reminder. Please try again.', 'warning');
+        }
+    }
+
+    saveToHistory(data) {
+        try {
+            var history = JSON.parse(localStorage.getItem('gobananas_history') || '[]');
+            history.unshift({ stage: data.stage, hue: data.hue, timestamp: Date.now(), stageInfo: data.stage_info });
+            localStorage.setItem('gobananas_history', JSON.stringify(history.slice(0, 10)));
+        } catch (e) {
+            console.warn('Failed to save history', e);
+        }
     }
 
     showAlert(message, type) {
@@ -538,6 +773,37 @@ class BananaRipenessApp {
         return icons[type] || 'info-circle';
     }
 
+    async registerDevice() {
+        var deviceId = localStorage.getItem('gobananas_device_id');
+        if (!deviceId) {
+            // Fallback for environments without crypto.randomUUID (older WebViews, non-HTTPS)
+            if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+                deviceId = crypto.randomUUID();
+            } else {
+                deviceId = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+                    var r = Math.random() * 16 | 0;
+                    var v = c === 'x' ? r : (r & 0x3 | 0x8);
+                    return v.toString(16);
+                });
+            }
+            localStorage.setItem('gobananas_device_id', deviceId);
+        }
+
+        try {
+            var response = await fetch('/api/user', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ device_id: deviceId })
+            });
+            if (!response.ok) throw new Error('HTTP ' + response.status);
+            var data = await response.json();
+            localStorage.setItem('gobananas_user_id', data.user_id);
+            localStorage.setItem('gobananas_premium', String(data.is_premium));
+        } catch (e) {
+            console.warn('Device registration failed (offline?)', e);
+        }
+    }
+
     formatFileSize(bytes) {
         if (bytes === 0) return '0 Bytes';
         const k = 1024;
@@ -549,7 +815,7 @@ class BananaRipenessApp {
 
 // Initialize the app when DOM is loaded
 document.addEventListener('DOMContentLoaded', function() {
-    new BananaRipenessApp();
+    window.bananaApp = new BananaRipenessApp();
 });
 
 // Add custom CSS for enhanced interactions
