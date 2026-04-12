@@ -123,6 +123,8 @@ class BananaRipenessApp {
 
     triggerFileInput() {
         if (this.fileInput) {
+            // Remove capture attribute so the OS shows the file picker, not the camera
+            this.fileInput.removeAttribute('capture');
             this.fileInput.click();
         }
     }
@@ -339,8 +341,11 @@ class BananaRipenessApp {
                 this.fileInput.files = dt.files;
                 this.validateAndPreviewImage(file);
             } else {
+                // Set capture attribute so the OS opens the camera directly
                 this.fileInput.setAttribute('capture', 'environment');
                 this.fileInput.click();
+                // Remove it after so subsequent Upload clicks open the file picker
+                this.fileInput.removeAttribute('capture');
             }
         } catch (e) {
             console.error('Camera error:', e);
