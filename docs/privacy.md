@@ -1,48 +1,51 @@
 # Privacy Policy — Go Bananas
 
-_Last updated: April 11, 2026_
+_Last updated: May 10, 2026_
 
-> **Note for future-Eric:** this is the Track 1 (Flask + Capacitor) privacy policy preserved verbatim from `templates/privacy.html`. It mentions server-side scan storage, which is **not true for the native mobile app**. Rewrite for the on-device architecture before App Store / Play Store submission. Key contact (`privacy@harnischllc.com`) and structure are reusable.
+Go Bananas is a banana ripeness scanning app published by Harnisch LLC ("we", "us"). This policy explains what data the app does and does not collect.
 
----
+## TL;DR
 
-## What We Collect
+Go Bananas runs entirely on your device. We do not collect, transmit, store, or share any personal data. Photos you take to scan a banana are processed on the device, never uploaded, and never leave your phone.
 
-- **Device identifier:** A randomly generated anonymous ID stored on your device. We do not collect your name, email, or any personal information.
-- **Banana scan data:** When you analyze a banana, we store the color data (hue value) and ripeness stage for improving our detection accuracy. Photos are processed in real-time and are not stored on our servers.
-- **Feedback:** If you provide feedback on scan accuracy (thumbs up/down), we store this to improve predictions for all users.
-- **Push notification tokens:** If you opt in to ripeness alerts (premium feature), we store your push notification token to send you reminders.
+## What we collect
 
-## How We Use Your Data
+**Nothing.** Go Bananas v1.0 does not transmit any data off your device. There is no account, no login, no analytics, no advertising SDK.
 
-- To provide banana ripeness analysis
-- To improve detection accuracy based on aggregate user feedback
-- To send ripeness alert notifications (premium, opt-in only)
-- To personalize your experience over time (premium)
+## What stays on your device
 
-## What We Do NOT Do
+The app stores the following locally, accessible only to you:
 
-- We do not sell your data to third parties
-- We do not store your photos
-- We do not collect personal information (name, email, location)
-- We do not track you across other apps or websites
+- **Scan history** — the photo and computed ripeness stage for each banana you've scanned. You can clear this from the History tab at any time.
+- **Bunch state** — the virtual "bunch" of bananas you've planted in the Bananas tab, including the family name you chose, environment selections (counter, fridge, etc.), and the bunch's lifecycle events.
+- **Notification preferences** — if you opt into ripeness alerts for the bunch feature, the operating system holds a notification token locally to schedule "your banana is ripe" reminders. The token is not transmitted to us.
 
-## Data Storage
+## What we do NOT do
 
-Your data is stored securely on servers hosted by Render (render.com). Scan history is also stored locally on your device using browser/app storage.
+- We do not collect personal information (name, email, location, contact info).
+- We do not upload your photos.
+- We do not use third-party analytics or advertising SDKs.
+- We do not share data with third parties.
+- We do not track you across other apps or websites.
 
-## Your Rights
+## Permissions the app requests
 
-You can clear your local scan history at any time from the app. To request deletion of your server-side data, contact us at the email below.
+- **Camera** — used to take photos of bananas in-app. Photos are processed on-device only.
+- **Photo library** (optional) — if you choose to analyze a photo you already have, the app reads it from your library locally. Photos are processed on-device only.
+- **Notifications** (optional) — used for local "your bunch is ripe" reminders. No remote push notifications are sent.
+
+## Future features
+
+A future version may add an optional "anonymous corrections" feature, where you can send back the predicted ripeness stage and your correction (no photos, no identifying information) to help improve the algorithm. This will be strictly opt-in. When and if it ships, this policy will be updated to describe exactly what is sent.
 
 ## Children
 
-Go Bananas is suitable for all ages. We do not knowingly collect data from children under 13 beyond the anonymous device identifier described above.
+Go Bananas is suitable for all ages and does not knowingly collect data from anyone, including children under 13.
 
-## Changes
+## Changes to this policy
 
-We may update this policy from time to time. Changes will be posted on this page with an updated date.
+We may update this policy from time to time. Material changes will be noted at the top of this page and the updated date revised.
 
 ## Contact
 
-Questions about this policy? Contact us at **privacy@harnischllc.com**
+Questions about this policy? Email **privacy@harnischllc.com**
