@@ -1,0 +1,335 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 1180" width="1600" height="1180" font-family="Inter, -apple-system, system-ui, sans-serif">
+  <defs>
+    <!-- Master banana shape. Draggable into Figma as an editable vector. -->
+    <symbol id="banana" viewBox="0 0 250 220">
+      <!-- Body -->
+      <path d="M 45 175
+               C 35 95, 95 30, 200 35
+               C 218 36, 226 52, 215 66
+               C 145 80, 95 125, 70 188
+               C 65 198, 50 198, 45 175 Z"
+            fill="currentColor" />
+      <!-- Stem -->
+      <path d="M 198 36 L 207 22 L 220 22 L 218 38 L 210 42 Z"
+            fill="#5d4625" />
+      <!-- Tip -->
+      <ellipse cx="50" cy="188" rx="8" ry="4" fill="#5d4625" transform="rotate(-30 50 188)" />
+    </symbol>
+
+    <!-- Banana with thick ink outline (sticker style) -->
+    <symbol id="banana-outlined" viewBox="0 0 250 220">
+      <path d="M 45 175
+               C 35 95, 95 30, 200 35
+               C 218 36, 226 52, 215 66
+               C 145 80, 95 125, 70 188
+               C 65 198, 50 198, 45 175 Z"
+            fill="#f5c518" stroke="#1f1d18" stroke-width="10" stroke-linejoin="round" />
+      <path d="M 198 36 L 207 22 L 220 22 L 218 38 L 210 42 Z"
+            fill="#1f1d18" />
+    </symbol>
+
+    <!-- Sparkle for "chef's kiss" energy -->
+    <symbol id="sparkle" viewBox="0 0 30 30">
+      <path d="M 15 0 L 17 13 L 30 15 L 17 17 L 15 30 L 13 17 L 0 15 L 13 13 Z" fill="currentColor" />
+    </symbol>
+
+    <!-- Cell shadow -->
+    <filter id="cellShadow" x="-5%" y="-5%" width="110%" height="120%">
+      <feDropShadow dx="0" dy="2" stdDeviation="6" flood-color="#1f1d18" flood-opacity="0.06" />
+    </filter>
+
+    <style>
+      .cell-bg     { fill: #ffffff; stroke: #e9e4d6; stroke-width: 1; }
+      .visual-bg   { fill: #faf7f0; }
+      .visual-yellow { fill: #fdf2bf; }
+      .visual-ink    { fill: #1f1d18; }
+      .visual-sun    { fill: #fff5b1; }
+      .label-bg    { fill: #ffffff; }
+
+      .tag { font-size: 10px; font-weight: 700; letter-spacing: 1.2px; fill: #d9a800; }
+      .cell-title  { font-size: 15px; font-weight: 700; fill: #1f1d18; letter-spacing: -0.2px; }
+      .cell-desc   { font-size: 11px; font-weight: 400; fill: #6b675e; }
+
+      .header-title { font-size: 38px; font-weight: 900; fill: #1f1d18; letter-spacing: -0.5px; }
+      .header-sub   { font-size: 13px; font-weight: 500; fill: #6b675e; }
+
+      .wordmark-bold { font-size: 28px; font-weight: 800; fill: #1f1d18; letter-spacing: -0.5px; }
+      .wordmark-black { font-size: 28px; font-weight: 900; fill: #1f1d18; letter-spacing: -0.5px; }
+      .wordmark-italic { font-size: 30px; font-weight: 800; fill: #1f1d18; font-style: italic; letter-spacing: -0.5px; }
+      .stacked-line { font-size: 30px; font-weight: 900; fill: #1f1d18; letter-spacing: 4px; }
+      .roundel-text { font-size: 11px; font-weight: 700; fill: #1f1d18; letter-spacing: 3px; }
+    </style>
+  </defs>
+
+  <!-- ============ Background ============ -->
+  <rect width="1600" height="1180" fill="#faf7f0" />
+
+  <!-- ============ Header ============ -->
+  <text x="40" y="74" class="header-title">Go Bananas — Icon &amp; Logo Exploration</text>
+  <text x="40" y="100" class="header-sub">v1 · 12 concepts. Yellow #F5C518, ink #1F1D18, cream #FAF7F0. Drag this SVG into Figma to refine any concept as editable vectors.</text>
+
+  <!-- ============ Row 1 — Icons 01–04 ============ -->
+
+  <!-- Cell 01: Solid yellow banana, no outline -->
+  <g transform="translate(32, 140)" filter="url(#cellShadow)">
+    <rect class="cell-bg" width="372" height="320" rx="16" />
+    <rect class="visual-bg" x="1" y="1" width="370" height="218" rx="15" />
+    <g transform="translate(82, 30)" color="#f5c518">
+      <use href="#banana" width="208" height="183" />
+    </g>
+    <g transform="translate(0, 220)">
+      <rect class="label-bg" width="372" height="100" />
+      <text x="20" y="22" class="tag">ICON · 01</text>
+      <text x="20" y="44" class="cell-title">Solid banana</text>
+      <text x="20" y="64" class="cell-desc">Pure yellow shape on cream. Minimal,</text>
+      <text x="20" y="78" class="cell-desc">recognizable at any size, brand-first.</text>
+    </g>
+  </g>
+
+  <!-- Cell 02: Sticker — banana with thick ink outline -->
+  <g transform="translate(420, 140)" filter="url(#cellShadow)">
+    <rect class="cell-bg" width="372" height="320" rx="16" />
+    <rect class="visual-bg" x="1" y="1" width="370" height="218" rx="15" />
+    <g transform="translate(82, 30)">
+      <use href="#banana-outlined" width="208" height="183" />
+    </g>
+    <g transform="translate(0, 220)">
+      <rect class="label-bg" width="372" height="100" />
+      <text x="20" y="22" class="tag">ICON · 02</text>
+      <text x="20" y="44" class="cell-title">Sticker — yellow + ink outline</text>
+      <text x="20" y="64" class="cell-desc">Thick black outline. Reads strong on</text>
+      <text x="20" y="78" class="cell-desc">light AND dark home screens.</text>
+    </g>
+  </g>
+
+  <!-- Cell 03: Yellow roundel with banana inside -->
+  <g transform="translate(808, 140)" filter="url(#cellShadow)">
+    <rect class="cell-bg" width="372" height="320" rx="16" />
+    <rect class="visual-bg" x="1" y="1" width="370" height="218" rx="15" />
+    <circle cx="186" cy="110" r="92" fill="#f5c518" />
+    <g transform="translate(105, 33)" color="#1f1d18">
+      <use href="#banana" width="155" height="155" />
+    </g>
+    <g transform="translate(0, 220)">
+      <rect class="label-bg" width="372" height="100" />
+      <text x="20" y="22" class="tag">ICON · 03</text>
+      <text x="20" y="44" class="cell-title">Yellow roundel</text>
+      <text x="20" y="64" class="cell-desc">Disc + ink banana. Distinctive silhouette</text>
+      <text x="20" y="78" class="cell-desc">at any size; squircle-friendly for iOS.</text>
+    </g>
+  </g>
+
+  <!-- Cell 04: After-dark / inverse -->
+  <g transform="translate(1196, 140)" filter="url(#cellShadow)">
+    <rect class="cell-bg" width="372" height="320" rx="16" />
+    <rect class="visual-ink" x="1" y="1" width="370" height="218" rx="15" />
+    <circle cx="186" cy="110" r="80" fill="#f5c518" opacity="0.18" />
+    <g transform="translate(94, 27)" color="#f5c518">
+      <use href="#banana" width="184" height="167" />
+    </g>
+    <g transform="translate(0, 220)">
+      <rect class="label-bg" width="372" height="100" />
+      <text x="20" y="22" class="tag">ICON · 04</text>
+      <text x="20" y="44" class="cell-title">After-dark variant</text>
+      <text x="20" y="64" class="cell-desc">Ink ground with subtle yellow halo.</text>
+      <text x="20" y="78" class="cell-desc">Pairs with #01–#03 as the dark-mode mark.</text>
+    </g>
+  </g>
+
+  <!-- ============ Row 2 — Icons 05–06 + Logos 07–08 ============ -->
+
+  <!-- Cell 05: Bunch of three -->
+  <g transform="translate(32, 476)" filter="url(#cellShadow)">
+    <rect class="cell-bg" width="372" height="320" rx="16" />
+    <rect class="visual-bg" x="1" y="1" width="370" height="218" rx="15" />
+    <g color="#d9a800" opacity="0.85">
+      <use href="#banana" x="55" y="35" width="180" height="158" />
+    </g>
+    <g color="#f5c518">
+      <use href="#banana" x="100" y="22" width="180" height="158" />
+    </g>
+    <g color="#fff5b1">
+      <use href="#banana" x="135" y="48" width="180" height="158" />
+    </g>
+    <g transform="translate(0, 220)">
+      <rect class="label-bg" width="372" height="100" />
+      <text x="20" y="22" class="tag">ICON · 05</text>
+      <text x="20" y="44" class="cell-title">Bunch of three</text>
+      <text x="20" y="64" class="cell-desc">Hat-tip to the bunch feature. Three</text>
+      <text x="20" y="78" class="cell-desc">overlapping bananas, layered yellows.</text>
+    </g>
+  </g>
+
+  <!-- Cell 06: Smile / peak vibe — banana with eyes + sparkle -->
+  <g transform="translate(420, 476)" filter="url(#cellShadow)">
+    <rect class="cell-bg" width="372" height="320" rx="16" />
+    <rect class="visual-yellow" x="1" y="1" width="370" height="218" rx="15" />
+    <g transform="translate(82, 36)" color="#1f1d18">
+      <use href="#banana" width="208" height="183" />
+    </g>
+    <!-- Eyes (above the banana arc) -->
+    <circle cx="155" cy="78" r="7" fill="#1f1d18" />
+    <circle cx="195" cy="68" r="7" fill="#1f1d18" />
+    <!-- Sparkle in upper right -->
+    <g color="#1f1d18" transform="translate(290, 30)">
+      <use href="#sparkle" width="32" height="32" />
+    </g>
+    <g transform="translate(0, 220)">
+      <rect class="label-bg" width="372" height="100" />
+      <text x="20" y="22" class="tag">ICON · 06</text>
+      <text x="20" y="44" class="cell-title">Smiling / peak vibe</text>
+      <text x="20" y="64" class="cell-desc">Eyes + sparkle. Leans most into the</text>
+      <text x="20" y="78" class="cell-desc">"casual foodie / chef's kiss" persona.</text>
+    </g>
+  </g>
+
+  <!-- Cell 07: Horizontal wordmark with banana lozenge -->
+  <g transform="translate(808, 476)" filter="url(#cellShadow)">
+    <rect class="cell-bg" width="372" height="320" rx="16" />
+    <rect class="visual-bg" x="1" y="1" width="370" height="218" rx="15" />
+    <!-- Yellow lozenge background -->
+    <rect x="40" y="84" width="60" height="50" rx="14" fill="#f5c518" />
+    <g transform="translate(46, 78)" color="#1f1d18">
+      <use href="#banana" width="48" height="62" />
+    </g>
+    <text x="115" y="124" class="wordmark-bold">Go Bananas</text>
+    <g transform="translate(0, 220)">
+      <rect class="label-bg" width="372" height="100" />
+      <text x="20" y="22" class="tag">LOGO · 07</text>
+      <text x="20" y="44" class="cell-title">Horizontal lockup</text>
+      <text x="20" y="64" class="cell-desc">Banana lozenge + wordmark. Default for</text>
+      <text x="20" y="78" class="cell-desc">app store listings, headers, web.</text>
+    </g>
+  </g>
+
+  <!-- Cell 08: Stacked all-caps with yellow underline -->
+  <g transform="translate(1196, 476)" filter="url(#cellShadow)">
+    <rect class="cell-bg" width="372" height="320" rx="16" />
+    <rect class="visual-bg" x="1" y="1" width="370" height="218" rx="15" />
+    <text x="186" y="80" class="stacked-line" text-anchor="middle">GO</text>
+    <text x="186" y="120" class="stacked-line" text-anchor="middle">BANANAS</text>
+    <!-- Yellow underline shaped like banana's curve -->
+    <path d="M 80 152 Q 186 168, 292 144" fill="none" stroke="#f5c518" stroke-width="6" stroke-linecap="round" />
+    <g transform="translate(0, 220)">
+      <rect class="label-bg" width="372" height="100" />
+      <text x="20" y="22" class="tag">LOGO · 08</text>
+      <text x="20" y="44" class="cell-title">Stacked all-caps</text>
+      <text x="20" y="64" class="cell-desc">Tall, deliberate, foodie-magazine vibe.</text>
+      <text x="20" y="78" class="cell-desc">Banana-curve underline as accent.</text>
+    </g>
+  </g>
+
+  <!-- ============ Row 3 — Logos 09–12 ============ -->
+
+  <!-- Cell 09: Italic playful + banana exclamation -->
+  <g transform="translate(32, 812)" filter="url(#cellShadow)">
+    <rect class="cell-bg" width="372" height="320" rx="16" />
+    <rect class="visual-bg" x="1" y="1" width="370" height="218" rx="15" />
+    <text x="40" y="125" class="wordmark-italic">Go Bananas</text>
+    <!-- Banana shape used as exclamation point -->
+    <g transform="translate(285, 73) rotate(15)" color="#f5c518">
+      <use href="#banana" width="42" height="58" />
+    </g>
+    <circle cx="306" cy="138" r="6" fill="#1f1d18" />
+    <g transform="translate(0, 220)">
+      <rect class="label-bg" width="372" height="100" />
+      <text x="20" y="22" class="tag">LOGO · 09</text>
+      <text x="20" y="44" class="cell-title">Italic — banana exclamation</text>
+      <text x="20" y="64" class="cell-desc">Forward lean, banana-as-exclamation.</text>
+      <text x="20" y="78" class="cell-desc">Leans into the playful brand voice.</text>
+    </g>
+  </g>
+
+  <!-- Cell 10: Banana ligature — banana inside the "G" -->
+  <g transform="translate(420, 812)" filter="url(#cellShadow)">
+    <rect class="cell-bg" width="372" height="320" rx="16" />
+    <rect class="visual-bg" x="1" y="1" width="370" height="218" rx="15" />
+    <!-- Custom giant G with banana inside the loop -->
+    <g transform="translate(56, 50)">
+      <!-- The G letter form (simplified) -->
+      <path d="M 70 0
+               C 30 0, 0 30, 0 70
+               C 0 110, 30 140, 70 140
+               C 110 140, 140 110, 140 70
+               L 90 70
+               L 90 95
+               L 110 95
+               C 105 110, 90 120, 70 120
+               C 40 120, 20 100, 20 70
+               C 20 40, 40 20, 70 20
+               C 90 20, 105 30, 112 45
+               L 132 35
+               C 122 12, 100 0, 70 0 Z"
+            fill="#1f1d18" />
+      <!-- Yellow banana tucked into the negative space -->
+      <g transform="translate(48, 38)" color="#f5c518">
+        <use href="#banana" width="58" height="46" />
+      </g>
+    </g>
+    <text x="200" y="138" class="wordmark-black">o Bananas</text>
+    <g transform="translate(0, 220)">
+      <rect class="label-bg" width="372" height="100" />
+      <text x="20" y="22" class="tag">LOGO · 10</text>
+      <text x="20" y="44" class="cell-title">Letter ligature — banana in the G</text>
+      <text x="20" y="64" class="cell-desc">Banana sits inside the G's loop.</text>
+      <text x="20" y="78" class="cell-desc">Most distinctive; needs custom drawing.</text>
+    </g>
+  </g>
+
+  <!-- Cell 11: Roundel logo — text around the rim, banana center -->
+  <g transform="translate(808, 812)" filter="url(#cellShadow)">
+    <rect class="cell-bg" width="372" height="320" rx="16" />
+    <rect class="visual-bg" x="1" y="1" width="370" height="218" rx="15" />
+    <!-- Outer ring -->
+    <circle cx="186" cy="110" r="92" fill="none" stroke="#1f1d18" stroke-width="2" />
+    <!-- Yellow inner disc -->
+    <circle cx="186" cy="110" r="76" fill="#f5c518" />
+    <!-- Banana glyph in center -->
+    <g transform="translate(124, 50)" color="#1f1d18">
+      <use href="#banana" width="124" height="120" />
+    </g>
+    <!-- Text on the curved path -->
+    <defs>
+      <path id="rimPath" d="M 102 110 a 84 84 0 1 1 168 0" />
+    </defs>
+    <text class="roundel-text">
+      <textPath href="#rimPath" startOffset="50%" text-anchor="middle">GO BANANAS · EST 2026 ·</textPath>
+    </text>
+    <g transform="translate(0, 220)">
+      <rect class="label-bg" width="372" height="100" />
+      <text x="20" y="22" class="tag">LOGO · 11</text>
+      <text x="20" y="44" class="cell-title">Round badge</text>
+      <text x="20" y="64" class="cell-desc">Text on rim, banana centered.</text>
+      <text x="20" y="78" class="cell-desc">Reads as a craft / artisan mark.</text>
+    </g>
+  </g>
+
+  <!-- Cell 12: Smile lockup — wordmark + banana underline -->
+  <g transform="translate(1196, 812)" filter="url(#cellShadow)">
+    <rect class="cell-bg" width="372" height="320" rx="16" />
+    <rect class="visual-bg" x="1" y="1" width="370" height="218" rx="15" />
+    <text x="186" y="100" class="wordmark-bold" text-anchor="middle">Go Bananas</text>
+    <!-- Banana shape as a smile under the wordmark -->
+    <path d="M 90 130
+             C 110 168, 262 168, 282 130
+             C 270 145, 240 158, 186 158
+             C 132 158, 102 145, 90 130 Z"
+          fill="#f5c518" stroke="#1f1d18" stroke-width="2.5" stroke-linejoin="round" />
+    <ellipse cx="282" cy="130" rx="3.5" ry="2.5" fill="#5d4625" transform="rotate(-30 282 130)" />
+    <g transform="translate(0, 220)">
+      <rect class="label-bg" width="372" height="100" />
+      <text x="20" y="22" class="tag">LOGO · 12</text>
+      <text x="20" y="44" class="cell-title">Smile lockup</text>
+      <text x="20" y="64" class="cell-desc">Wordmark with a banana that doubles</text>
+      <text x="20" y="78" class="cell-desc">as a smile. Fun for marketing.</text>
+    </g>
+  </g>
+
+  <!-- ============ Footer / legend ============ -->
+  <g transform="translate(40, 1148)">
+    <text class="cell-desc">
+      <tspan font-weight="700" fill="#1f1d18">Drag this SVG into the GoBananas Figma file</tspan>
+      <tspan dx="6">— each concept becomes an editable vector group. Pick the strongest 2–3 to refine into a final 1024×1024 icon + lockup system.</tspan>
+    </text>
+  </g>
+</svg>

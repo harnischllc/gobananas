@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Go Bananas — Home Screen Concept v1</title>
+<style>
+  :root {
+    --bg: #faf7f0;
+    --ink: #1f1d18;
+    --ink-soft: #6b675e;
+    --line: #e9e4d6;
+    --card: #ffffff;
+    --accent: #f5c518;     /* banana yellow */
+    --accent-deep: #d9a800;
+    --green: #5d9a3f;
+    --green-soft: #d6ebc8;
+    --yellow: #f5c518;
+    --yellow-soft: #fdf2bf;
+    --brown: #8a5a2b;
+    --brown-soft: #ead7c1;
+    --shadow: 0 10px 30px rgba(31, 29, 24, 0.08);
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .page {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 48px 24px 96px;
+  }
+
+  .page-header h1 {
+    font-size: 28px;
+    margin: 0 0 6px;
+    letter-spacing: -0.01em;
+  }
+
+  .page-header p {
+    margin: 0 0 32px;
+    color: var(--ink-soft);
+    font-size: 15px;
+  }
+
+  .stage {
+    display: grid;
+    grid-template-columns: minmax(0, 360px) 1fr;
+    gap: 56px;
+    align-items: start;
+  }
+
+  @media (max-width: 860px) {
+    .stage { grid-template-columns: 1fr; gap: 32px; }
+  }
+
+  /* ----- iPhone frame ----- */
+  .phone {
+    width: 360px;
+    height: 740px;
+    background: #0c0c0c;
+    border-radius: 48px;
+    padding: 12px;
+    box-shadow: var(--shadow), 0 0 0 1px rgba(0,0,0,0.05);
+    margin: 0 auto;
+    position: relative;
+  }
+
+  .phone-screen {
+    width: 100%;
+    height: 100%;
+    background: var(--bg);
+    border-radius: 38px;
+    overflow: hidden;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .notch {
+    position: absolute;
+    top: 12px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 110px;
+    height: 28px;
+    background: #0c0c0c;
+    border-radius: 16px;
+    z-index: 10;
+  }
+
+  .status-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 14px 28px 4px;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--ink);
+  }
+
+  .status-bar .icons {
+    display: inline-flex;
+    gap: 6px;
+    align-items: center;
+    font-size: 12px;
+  }
+
+  /* ----- App nav ----- */
+  .app-nav {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 18px 22px 8px;
+  }
+
+  .app-title {
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .app-title .logo {
+    font-size: 24px;
+  }
+
+  .icon-btn {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    background: var(--card);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--line);
+    color: var(--ink-soft);
+    font-size: 16px;
+  }
+
+  /* ----- Body ----- */
+  .app-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 8px 18px 100px;
+  }
+
+  /* Hero scan card */
+  .scan-card {
+    margin-top: 12px;
+    background: linear-gradient(160deg, #fff5b1 0%, #f5c518 100%);
+    border-radius: 28px;
+    padding: 28px 22px 24px;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 8px 24px rgba(245, 197, 24, 0.22);
+  }
+
+  .scan-card::after {
+    content: "🍌";
+    position: absolute;
+    right: -10px;
+    bottom: -22px;
+    font-size: 130px;
+    opacity: 0.18;
+    transform: rotate(-18deg);
+    line-height: 1;
+  }
+
+  .scan-card .eyebrow {
+    font-size: 12px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: rgba(31, 29, 24, 0.6);
+    margin-bottom: 6px;
+    font-weight: 600;
+  }
+
+  .scan-card h2 {
+    font-size: 22px;
+    font-weight: 700;
+    margin: 0 0 16px;
+    letter-spacing: -0.01em;
+    line-height: 1.2;
+  }
+
+  .scan-cta {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--ink);
+    color: #fff;
+    padding: 12px 18px;
+    border-radius: 999px;
+    font-weight: 600;
+    font-size: 15px;
+    border: none;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.18);
+    position: relative;
+    z-index: 2;
+  }
+
+  .scan-cta .cta-icon {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: var(--accent);
+    color: var(--ink);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 700;
+  }
+
+  .scan-secondary {
+    display: block;
+    margin-top: 12px;
+    color: rgba(31, 29, 24, 0.7);
+    font-size: 13px;
+    font-weight: 500;
+    text-decoration: none;
+    position: relative;
+    z-index: 2;
+  }
+
+  /* Section header */
+  .section-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    padding: 24px 4px 10px;
+  }
+
+  .section-head h3 {
+    font-size: 14px;
+    font-weight: 700;
+    margin: 0;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--ink-soft);
+  }
+
+  .section-head .link {
+    font-size: 13px;
+    color: var(--ink-soft);
+    text-decoration: none;
+    font-weight: 500;
+  }
+
+  /* History list */
+  .history {
+    background: var(--card);
+    border-radius: 22px;
+    border: 1px solid var(--line);
+    overflow: hidden;
+  }
+
+  .history-row {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    gap: 12px;
+    align-items: center;
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .history-row:last-child { border-bottom: none; }
+
+  .stage-dot {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 13px;
+    color: var(--ink);
+    flex-shrink: 0;
+  }
+
+  .stage-dot.s1 { background: var(--green-soft); color: var(--green); }
+  .stage-dot.s3 { background: #f4ecb8; color: #8a7a18; }
+  .stage-dot.s5 { background: var(--yellow-soft); color: var(--accent-deep); }
+  .stage-dot.s6 { background: var(--yellow); color: var(--ink); }
+  .stage-dot.s7 { background: var(--brown-soft); color: var(--brown); }
+
+  .history-meta .name {
+    font-size: 15px;
+    font-weight: 600;
+  }
+
+  .history-meta .sub {
+    font-size: 12px;
+    color: var(--ink-soft);
+    margin-top: 2px;
+  }
+
+  .history-time {
+    font-size: 12px;
+    color: var(--ink-soft);
+    text-align: right;
+  }
+
+  /* Learn card */
+  .learn-card {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 22px;
+    padding: 18px;
+    margin-top: 16px;
+    display: grid;
+    grid-template-columns: 44px 1fr auto;
+    gap: 14px;
+    align-items: center;
+  }
+
+  .learn-card .glyph {
+    width: 44px;
+    height: 44px;
+    border-radius: 14px;
+    background: #eaf3e1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+  }
+
+  .learn-card h4 {
+    font-size: 15px;
+    margin: 0;
+    font-weight: 700;
+  }
+
+  .learn-card p {
+    margin: 2px 0 0;
+    font-size: 12px;
+    color: var(--ink-soft);
+  }
+
+  .chev {
+    font-size: 18px;
+    color: var(--ink-soft);
+  }
+
+  /* Tab bar */
+  .tab-bar {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: rgba(255, 255, 255, 0.94);
+    backdrop-filter: blur(14px);
+    border-top: 1px solid var(--line);
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    padding: 8px 8px 22px;
+  }
+
+  .tab {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    padding: 6px 0;
+    font-size: 10px;
+    color: var(--ink-soft);
+    text-decoration: none;
+    font-weight: 600;
+  }
+
+  .tab .glyph { font-size: 20px; }
+
+  .tab.active { color: var(--ink); }
+
+  .home-indicator {
+    position: absolute;
+    bottom: 8px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 130px;
+    height: 4px;
+    border-radius: 4px;
+    background: rgba(0,0,0,0.85);
+  }
+
+  /* ----- Notes column ----- */
+  .notes h2 {
+    font-size: 18px;
+    margin: 0 0 12px;
+    letter-spacing: -0.01em;
+  }
+
+  .notes h2:not(:first-child) { margin-top: 28px; }
+
+  .notes ul {
+    margin: 0;
+    padding-left: 20px;
+    color: var(--ink);
+    font-size: 14.5px;
+    line-height: 1.55;
+  }
+
+  .notes li { margin-bottom: 8px; }
+
+  .notes .muted { color: var(--ink-soft); }
+
+  .pill {
+    display: inline-block;
+    background: var(--yellow-soft);
+    color: var(--accent-deep);
+    border: 1px solid #efd97a;
+    border-radius: 999px;
+    padding: 2px 10px;
+    font-size: 12px;
+    font-weight: 600;
+    margin-right: 6px;
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <header class="page-header">
+    <h1>Go Bananas — Home Screen, Concept v1</h1>
+    <p>2026-05-01 · Flutter target · on-device classification · concept only</p>
+  </header>
+
+  <div class="stage">
+
+    <!-- Phone mockup -->
+    <div class="phone">
+      <div class="phone-screen">
+        <div class="notch"></div>
+
+        <div class="status-bar">
+          <span>9:41</span>
+          <span class="icons">●●●●● 🔋</span>
+        </div>
+
+        <div class="app-nav">
+          <div class="app-title"><span class="logo">🍌</span> Go Bananas</div>
+          <div class="icon-btn">⚙</div>
+        </div>
+
+        <div class="app-body">
+
+          <!-- Hero scan card -->
+          <div class="scan-card">
+            <div class="eyebrow">Check a banana</div>
+            <h2>How ripe is yours, right now?</h2>
+            <button class="scan-cta">
+              <span class="cta-icon">▶</span>
+              Scan with camera
+            </button>
+            <a href="#" class="scan-secondary">or pick a color manually →</a>
+          </div>
+
+          <!-- Recent -->
+          <div class="section-head">
+            <h3>Recent</h3>
+            <a href="#" class="link">See all</a>
+          </div>
+
+          <div class="history">
+            <div class="history-row">
+              <div class="stage-dot s5">5</div>
+              <div class="history-meta">
+                <div class="name">Yellow with green tips</div>
+                <div class="sub">Peak in ~2 days · 92% confident</div>
+              </div>
+              <div class="history-time">Today<br />9:14 AM</div>
+            </div>
+            <div class="history-row">
+              <div class="stage-dot s3">3</div>
+              <div class="history-meta">
+                <div class="name">Yellowish</div>
+                <div class="sub">Peak in ~4 days · 78% confident</div>
+              </div>
+              <div class="history-time">Yesterday<br />6:02 PM</div>
+            </div>
+            <div class="history-row">
+              <div class="stage-dot s7">7</div>
+              <div class="history-meta">
+                <div class="name">Yellow with brown flecks</div>
+                <div class="sub">Past peak · best for baking</div>
+              </div>
+              <div class="history-time">Apr 28<br />8:30 AM</div>
+            </div>
+          </div>
+
+          <!-- Learn nudge -->
+          <div class="learn-card">
+            <div class="glyph">📚</div>
+            <div>
+              <h4>The 7-stage USDA scale</h4>
+              <p>Why hue maps to ripeness · 2 min read</p>
+            </div>
+            <div class="chev">›</div>
+          </div>
+
+        </div>
+
+        <!-- Tab bar -->
+        <div class="tab-bar">
+          <a href="#" class="tab active"><span class="glyph">🍌</span>Scan</a>
+          <a href="#" class="tab"><span class="glyph">🕓</span>History</a>
+          <a href="#" class="tab"><span class="glyph">📖</span>Learn</a>
+          <a href="#" class="tab"><span class="glyph">👤</span>You</a>
+        </div>
+        <div class="home-indicator"></div>
+      </div>
+    </div>
+
+    <!-- Notes -->
+    <div class="notes">
+      <h2>What this concept assumes</h2>
+      <ul>
+        <li><span class="pill">Architecture</span> Classification is on-device. No spinner, no server round-trip — the result lands instantly when you tap "Scan."</li>
+        <li><span class="pill">Primary action</span> Camera. The whole point of the app is "I have a banana in my hand right now." Upload-from-library is reachable but de-emphasized; color picker is a secondary link, not a button.</li>
+        <li><span class="pill">Recent</span> Local history of scans, stored on the device. Each row shows stage, plain-language description, "days to peak" or "past peak", and a confidence number. The colored circle on the left is the stage badge — the same color system used everywhere in the app.</li>
+        <li><span class="pill">Learn</span> A persistent "Learn" entry on the home screen because Eric explicitly wants the app to teach banana ripeness, not just classify it. One nudge here, deeper content under the Learn tab.</li>
+        <li><span class="pill">Tab bar</span> Four tabs: Scan, History, Learn, You. "You" is where the corrections opt-in lives, plus settings, plus eventually account/streaks/etc. Nothing in v1 needs an account.</li>
+      </ul>
+
+      <h2>Things to push back on</h2>
+      <ul>
+        <li>Is "🍌 Go Bananas" wordmark too cute, or just right? Could go more clinical ("Banana Ripeness · Stage 5") to lean into the science angle.</li>
+        <li>Should the secondary "pick a color" path even exist on mobile, or is it a vestige of the web app? On a phone you almost always have the banana <em>and</em> a camera, so the color picker may be dead weight.</li>
+        <li>Confidence as a percentage (92%) vs. words ("very confident" / "uncertain"). Numbers are more honest; words feel friendlier.</li>
+        <li>The hero card uses banana yellow as the dominant color. Strong brand, but every screen will look like a banana — fine, or too much?</li>
+        <li>"Learn" as a top-level tab vs. tucked under "You" — depends on how serious we are about the teaching goal.</li>
+        <li>Nothing on this screen mentions the corrections / feedback loop yet. Should there be a subtle "Was this right?" prompt on the result screen, or only a deeper "help us improve" flow under You?</li>
+      </ul>
+
+      <h2>Out of scope for this mockup</h2>
+      <p class="muted">Result screen, scanning state, camera permission flow, empty state (no scans yet), settings, corrections opt-in, onboarding. Each of those is its own conversation.</p>
+    </div>
+
+  </div>
+</div>
+</body>
+</html>

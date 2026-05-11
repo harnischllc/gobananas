@@ -1,0 +1,222 @@
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  Switch,
+  Pressable,
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { useState } from 'react';
+import { useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
+
+import { colors, radius, space } from '../../lib/theme';
+
+/**
+ * Stub for v1. Real surfaces this will hold:
+ *  - Corrections opt-in (the feedback loop toggle)
+ *  - Notifications (peak-banana reminders, eventually)
+ *  - About / version / open-source credits
+ *  - Eventually: account, streaks, share-with-roommate
+ *
+ * For the demo build the toggle does nothing — it's there to anchor the
+ * conversation about how the consent UX should feel, not to ship a feature.
+ */
+export default function YouScreen() {
+  const [optIn, setOptIn] = useState(false);
+  const router = useRouter();
+
+  return (
+    <SafeAreaView style={styles.safe} edges={['top']}>
+      <ScrollView contentContainerStyle={{ paddingBottom: 40 }}>
+        <View style={styles.head}>
+          <Text style={styles.title} accessibilityRole="header">
+            You
+          </Text>
+          <Text style={styles.lede}>
+            v1 doesn't need an account. Settings live here once we have any.
+          </Text>
+        </View>
+
+        {/*
+          v2 rewards demo — visible in dev only. The card disappears in
+          production builds so reviewers don't see clearly-labeled demo
+          surfaces. Re-enable for v1.1 when streaks/drops ship for real.
+        */}
+        {__DEV__ && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>🙊 V2 DEMO (dev only)</Text>
+            <Pressable
+              style={({ pressed }) => [
+                styles.card,
+                styles.rewardsRow,
+                pressed && { opacity: 0.7 },
+              ]}
+              onPress={() => router.push('/rewards')}
+              accessibilityRole="button"
+              accessibilityLabel="Open the rewards demo"
+            >
+              <View style={styles.rewardsGlyphWrap}>
+                <Text style={styles.rewardsGlyph}>📦</Text>
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.rewardsTitle}>Daily-scan rewards</Text>
+                <Text style={styles.rewardsSub}>
+                  Streaks, crate drops, fictional varieties, holiday theming.
+                  Demo controls included.
+                </Text>
+              </View>
+              <Ionicons
+                name="chevron-forward"
+                size={18}
+                color={colors.inkSoft}
+              />
+            </Pressable>
+          </View>
+        )}
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>HELP US GET SMARTER</Text>
+          <View style={styles.card}>
+            <View style={styles.toggleRow}>
+              <View style={{ flex: 1, paddingRight: 12 }}>
+                <Text style={styles.toggleTitle}>Send anonymous corrections</Text>
+                <Text style={styles.toggleSub}>
+                  When you tap "Actually it was Stage X" on a result, we'll
+                  send the predicted hue, predicted stage, and your correction
+                  to help tune the algorithm. No photos, no account, no
+                  tracking.
+                </Text>
+              </View>
+              <Switch
+                value={optIn}
+                onValueChange={setOptIn}
+                trackColor={{ false: colors.line, true: colors.accent }}
+                thumbColor="#fff"
+              />
+            </View>
+          </View>
+          <Text style={styles.note}>
+            Coming soon: anonymous corrections will help tune the algorithm.
+            Toggle on to opt in early.
+          </Text>
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>ABOUT</Text>
+          <View style={styles.card}>
+            <Text style={styles.aboutTitle}>Go Bananas</Text>
+            <Text style={styles.aboutBody}>
+              On-device banana ripeness scanning. Photos never leave your
+              phone. Web version at gobananas-cmml.onrender.com.
+            </Text>
+          </View>
+        </View>
+      </ScrollView>
+    </SafeAreaView>
+  );
+}
+
+const styles = StyleSheet.create({
+  safe: {
+    flex: 1,
+    backgroundColor: colors.bg,
+  },
+  head: {
+    paddingHorizontal: space.lg,
+    paddingTop: 12,
+    paddingBottom: space.md,
+  },
+  title: {
+    fontSize: 28,
+    fontWeight: '700',
+    letterSpacing: -0.5,
+    color: colors.ink,
+    marginBottom: 6,
+  },
+  lede: {
+    fontSize: 14,
+    color: colors.inkSoft,
+    lineHeight: 20,
+  },
+  section: {
+    marginTop: space.md,
+  },
+  sectionTitle: {
+    fontSize: 12,
+    fontWeight: '700',
+    letterSpacing: 1.2,
+    color: colors.inkSoft,
+    paddingHorizontal: space.lg,
+    marginBottom: 8,
+  },
+  card: {
+    backgroundColor: colors.card,
+    marginHorizontal: space.md,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: colors.line,
+    padding: space.md,
+  },
+  rewardsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  rewardsGlyphWrap: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    backgroundColor: colors.yellowSoft,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  rewardsGlyph: {
+    fontSize: 22,
+  },
+  rewardsTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: colors.ink,
+  },
+  rewardsSub: {
+    fontSize: 12,
+    color: colors.inkSoft,
+    marginTop: 2,
+    lineHeight: 16,
+  },
+  toggleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  toggleTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: colors.ink,
+  },
+  toggleSub: {
+    fontSize: 12.5,
+    color: colors.inkSoft,
+    marginTop: 4,
+    lineHeight: 17,
+  },
+  note: {
+    fontSize: 11,
+    color: colors.inkSoft,
+    fontStyle: 'italic',
+    paddingHorizontal: space.lg,
+    marginTop: 6,
+  },
+  aboutTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: colors.ink,
+  },
+  aboutBody: {
+    fontSize: 13,
+    color: colors.inkSoft,
+    marginTop: 4,
+    lineHeight: 18,
+  },
+});

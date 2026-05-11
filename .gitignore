@@ -1,14 +1,28 @@
+# Python / Flask
 venv/
 __pycache__/
 *.pyc
 .env
 uploads/
+.pytest_cache/
+instance/
+
+# Runtime logs
+logs/
+
+# macOS
 .DS_Store
+
+# Capacitor / native build artifacts
 node_modules/
 ios/App/Pods/
 android/.gradle/
 android/build/
-logs/
-instance/
-.claude/
 ios/App/App.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/
+
+# Claude Code — personal settings only
+.claude/settings.local.json
+
+# Expo / RN safety net (mobile/ has its own .gitignore too)
+.expo/
+*.tsbuildinfo

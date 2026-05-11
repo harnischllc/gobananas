@@ -1,0 +1,19 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "Expo dev server (Expo Go on phone)",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["expo", "start"],
+      "port": 8081,
+      "cwd": "/Users/ericharnisch/Documents/GitHub Local Clone/gobananas/mobile"
+    },
+    {
+      "name": "Expo web preview (browser)",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["expo", "start", "--web", "--port", "8091"],
+      "port": 8091,
+      "cwd": "/Users/ericharnisch/Documents/GitHub Local Clone/gobananas/mobile"
+    }
+  ]
+}
