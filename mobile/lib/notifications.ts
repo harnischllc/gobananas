@@ -61,7 +61,11 @@ export async function scheduleBunchPeakAlert(bunch: Bunch): Promise<void> {
   const granted = await requestNotificationPermission();
   if (!granted) return;
 
-  const seconds = secondsUntilPeak(next.ripeness, next.environment);
+  const seconds = secondsUntilPeak(
+    next.ripeness,
+    next.environment,
+    bunch.lifecycle_seconds,
+  );
   if (seconds <= 0) return;
 
   try {

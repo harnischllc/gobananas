@@ -17,14 +17,23 @@ import { Ionicons } from '@expo/vector-icons';
 import { ScanCard } from '../../components/ScanCard';
 import { HistoryRow } from '../../components/HistoryRow';
 import { DancingBanana } from '../../components/DancingBanana';
+import { PetBananaCard } from '../../components/PetBananaCard';
 import { SCAN_REQUEST_EVENT } from './_layout';
 import { addScan, loadHistory, ScanRecord } from '../../lib/history';
 import { classifyImage } from '../../lib/classify';
+import {
+  Bunch,
+  bunchOver,
+  loadBunch,
+  persistBunch,
+  tickBunch,
+} from '../../lib/pet';
 import { colors, radius, space } from '../../lib/theme';
 
 export default function ScanHome() {
   const router = useRouter();
   const [recent, setRecent] = useState<ScanRecord[]>([]);
+  const [bunch, setBunch] = useState<Bunch | null>(null);
   const [busy, setBusy] = useState(false);
 
   const refresh = useCallback(async () => {
@@ -33,7 +42,22 @@ export default function ScanHome() {
 
   useFocusEffect(
     useCallback(() => {
+      let alive = true;
       refresh();
+      (async () => {
+        const stored = await loadBunch();
+        if (!alive) return;
+        if (stored) {
+          const ticked = tickBunch(stored, false);
+          if (ticked !== stored) await persistBunch(ticked);
+          if (alive) setBunch(ticked);
+        } else if (alive) {
+          setBunch(null);
+        }
+      })();
+      return () => {
+        alive = false;
+      };
     }, [refresh]),
   );
 
@@ -123,6 +147,40 @@ export default function ScanHome() {
             <Ionicons name="settings-outline" size={18} color={colors.inkSoft} />
           </Pressable>
         </View>
+
+        {bunch !== null && !bunchOver(bunch) ? (
+          <Pressable
+            onPress={() => router.push('/bananas')}
+            accessibilityRole="button"
+            accessibilityLabel={`${bunch.name}, tap to tend the bunch`}
+            style={({ pressed }) => pressed && { opacity: 0.93 }}
+          >
+            <PetBananaCard bunch={bunch} />
+          </Pressable>
+        ) : (
+          <Pressable
+            onPress={() => router.push('/bananas')}
+            accessibilityRole="button"
+            accessibilityLabel={
+              bunch === null ? 'Start a bunch' : 'Plant a new bunch'
+            }
+            style={({ pressed }) => [
+              styles.bunchPrompt,
+              pressed && { opacity: 0.88 },
+            ]}
+          >
+            <Text style={styles.bunchPromptEmoji}>🌱</Text>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.bunchPromptTitle}>
+                {bunch === null ? 'Start a bunch' : 'Plant a new bunch'}
+              </Text>
+              <Text style={styles.bunchPromptSub}>
+                5–8 bananas. Stagger ripening. Eat at peak.
+              </Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color={colors.inkSoft} />
+          </Pressable>
+        )}
 
         <ScanCard onScan={handleScan} busy={busy} />
 
@@ -306,6 +364,31 @@ const styles = StyleSheet.create({
     color: colors.ink,
   },
   learnSub: {
+    fontSize: 12,
+    color: colors.inkSoft,
+    marginTop: 2,
+  },
+  bunchPrompt: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    backgroundColor: colors.yellowSoft,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: colors.line,
+    marginHorizontal: space.md,
+    marginTop: space.sm,
+    padding: space.md,
+  },
+  bunchPromptEmoji: {
+    fontSize: 28,
+  },
+  bunchPromptTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: colors.ink,
+  },
+  bunchPromptSub: {
     fontSize: 12,
     color: colors.inkSoft,
     marginTop: 2,

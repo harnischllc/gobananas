@@ -94,6 +94,9 @@ export default function TabsLayout() {
                   color={focused ? colors.ink : colors.inkSoft}
                 />
                 <Text
+                  numberOfLines={1}
+                  adjustsFontSizeToFit
+                  minimumFontScale={0.85}
                   style={[styles.label, focused ? styles.labelOn : styles.labelOff]}
                 >
                   {t.label}

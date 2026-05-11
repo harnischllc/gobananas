@@ -7,11 +7,19 @@ import {
   Pressable,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
 import { colors, radius, space } from '../../lib/theme';
+import {
+  DEFAULT_GAME_SPEED,
+  GAME_SPEEDS,
+  GAME_SPEED_ORDER,
+  GameSpeed,
+  loadPrefs,
+  setDefaultGameSpeed,
+} from '../../lib/pet';
 
 /**
  * Stub for v1. Real surfaces this will hold:
@@ -25,7 +33,23 @@ import { colors, radius, space } from '../../lib/theme';
  */
 export default function YouScreen() {
   const [optIn, setOptIn] = useState(false);
+  const [gameSpeed, setGameSpeed] =
+    useState<GameSpeed>(DEFAULT_GAME_SPEED);
   const router = useRouter();
+
+  useEffect(() => {
+    (async () => {
+      const prefs = await loadPrefs();
+      setGameSpeed(prefs.default_game_speed);
+    })();
+  }, []);
+
+  const handleSelectSpeed = async (speed: GameSpeed) => {
+    setGameSpeed(speed);
+    await setDefaultGameSpeed(speed);
+  };
+
+  const currentSpeedDef = GAME_SPEEDS[gameSpeed];
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
@@ -37,6 +61,48 @@ export default function YouScreen() {
           <Text style={styles.lede}>
             v1 doesn't need an account. Settings live here once we have any.
           </Text>
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>GAME SPEED</Text>
+          <View style={styles.card}>
+            <Text style={styles.speedHead}>
+              How fast should the bunch ripen?
+            </Text>
+            <Text style={styles.speedSub}>
+              Applies to your next bunch. Current bunch keeps its speed.
+            </Text>
+            <View style={styles.speedRow}>
+              {GAME_SPEED_ORDER.map((id) => {
+                const def = GAME_SPEEDS[id];
+                const active = gameSpeed === id;
+                return (
+                  <Pressable
+                    key={id}
+                    onPress={() => handleSelectSpeed(id)}
+                    accessibilityRole="button"
+                    accessibilityState={{ selected: active }}
+                    accessibilityLabel={`${def.label}: ${def.blurb}`}
+                    style={({ pressed }) => [
+                      styles.speedChip,
+                      active && styles.speedChipActive,
+                      pressed && { opacity: 0.7 },
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.speedChipLabel,
+                        active && styles.speedChipLabelActive,
+                      ]}
+                    >
+                      {def.label}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+            <Text style={styles.speedBlurb}>{currentSpeedDef.blurb}</Text>
+          </View>
         </View>
 
         {/*
@@ -218,5 +284,49 @@ const styles = StyleSheet.create({
     color: colors.inkSoft,
     marginTop: 4,
     lineHeight: 18,
+  },
+  speedHead: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: colors.ink,
+  },
+  speedSub: {
+    fontSize: 12.5,
+    color: colors.inkSoft,
+    marginTop: 4,
+    lineHeight: 17,
+  },
+  speedRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 12,
+  },
+  speedChip: {
+    flex: 1,
+    paddingVertical: 10,
+    borderRadius: radius.pill,
+    backgroundColor: colors.bg,
+    borderWidth: 1,
+    borderColor: colors.line,
+    alignItems: 'center',
+  },
+  speedChipActive: {
+    backgroundColor: colors.accent,
+    borderColor: colors.accent,
+  },
+  speedChipLabel: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: colors.inkSoft,
+  },
+  speedChipLabelActive: {
+    color: colors.ink,
+  },
+  speedBlurb: {
+    fontSize: 12,
+    color: colors.inkSoft,
+    fontStyle: 'italic',
+    marginTop: 10,
+    lineHeight: 16,
   },
 });

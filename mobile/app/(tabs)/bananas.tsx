@@ -23,7 +23,11 @@ import { DancingBanana } from '../../components/DancingBanana';
 import {
   Bunch,
   Environment,
+  GAME_SPEEDS,
+  GameSpeed,
+  DEFAULT_GAME_SPEED,
   loadBunch,
+  loadPrefs,
   plantBunch,
   tickBunch,
   setBananaEnvironment,
@@ -58,6 +62,7 @@ export default function BananasScreen() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [namingOpen, setNamingOpen] = useState(false);
   const [bunchNameInput, setBunchNameInput] = useState('');
+  const [plantSpeed, setPlantSpeed] = useState<GameSpeed>(DEFAULT_GAME_SPEED);
 
   /** Load on mount, catch up time without rolling random events. */
   useEffect(() => {
@@ -95,13 +100,15 @@ export default function BananasScreen() {
     }, []),
   );
 
-  const handlePlantPrompt = () => {
+  const handlePlantPrompt = async () => {
     setBunchNameInput('');
+    const prefs = await loadPrefs();
+    setPlantSpeed(prefs.default_game_speed);
     setNamingOpen(true);
   };
 
   const confirmPlant = async () => {
-    const next = await plantBunch(bunchNameInput);
+    const next = await plantBunch(bunchNameInput, plantSpeed);
     setBunch(next);
     setSelectedId(next.bananas[0]?.id ?? null);
     setNamingOpen(false);
@@ -214,6 +221,7 @@ export default function BananasScreen() {
       <NamingModal
         visible={namingOpen}
         value={bunchNameInput}
+        speed={plantSpeed}
         onChange={setBunchNameInput}
         onCancel={() => setNamingOpen(false)}
         onConfirm={confirmPlant}
@@ -301,16 +309,19 @@ function BunchOverBanner({
 function NamingModal({
   visible,
   value,
+  speed,
   onChange,
   onCancel,
   onConfirm,
 }: {
   visible: boolean;
   value: string;
+  speed: GameSpeed;
   onChange: (v: string) => void;
   onCancel: () => void;
   onConfirm: () => void;
 }) {
+  const speedDef = GAME_SPEEDS[speed];
   return (
     <Modal
       visible={visible}
@@ -338,6 +349,15 @@ function NamingModal({
             returnKeyType="done"
             onSubmitEditing={onConfirm}
           />
+          <View style={styles.speedChip}>
+            <Text style={styles.speedChipLabel}>SPEED</Text>
+            <Text style={styles.speedChipValue}>
+              {speedDef.label} · {speedDef.blurb}
+            </Text>
+            <Text style={styles.speedChipHint}>
+              Change in You → Game speed.
+            </Text>
+          </View>
           <View style={styles.modalActions}>
             <Pressable
               onPress={onCancel}
@@ -577,5 +597,30 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '700',
     color: colors.ink,
+  },
+  speedChip: {
+    marginTop: 12,
+    backgroundColor: colors.yellowSoft,
+    borderRadius: radius.md,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  speedChipLabel: {
+    fontSize: 10,
+    fontWeight: '700',
+    letterSpacing: 1.1,
+    color: colors.inkSoft,
+  },
+  speedChipValue: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: colors.ink,
+    marginTop: 2,
+  },
+  speedChipHint: {
+    fontSize: 11,
+    color: colors.inkSoft,
+    marginTop: 4,
+    fontStyle: 'italic',
   },
 });

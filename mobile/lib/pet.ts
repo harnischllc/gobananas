@@ -31,9 +31,95 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Stage } from './stages';
 
 const STORAGE_KEY = 'gobananas/bunch/v1';
+const PREFS_STORAGE_KEY = 'gobananas/prefs/v1';
 
-/** Total seconds for a banana to go from 0 → 100 on the counter. */
-export const LIFECYCLE_SECONDS = 30 * 60; // 30 minutes
+/* ------------------------------------------------------------------ */
+/* Game speed                                                          */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Three speeds for the bunch lifecycle (0 → 100 on the counter at 1.0×):
+ *   - Fast: 30 min — demo / play speed, eat a bunch in your lunch break
+ *   - Medium: 8 hours — start at breakfast, eat at dinner
+ *   - Slow: 5 days — real banana time
+ *
+ * The speed is **baked into the bunch at plant time**. Changing the
+ * setting later applies only to the NEXT bunch — current bunches keep
+ * the lifecycle they were planted with so ripeness doesn't whipsaw.
+ */
+export type GameSpeed = 'fast' | 'medium' | 'slow';
+
+export interface GameSpeedDef {
+  id: GameSpeed;
+  label: string;
+  lifecycleSeconds: number;
+  blurb: string;
+}
+
+export const GAME_SPEEDS: Record<GameSpeed, GameSpeedDef> = {
+  fast: {
+    id: 'fast',
+    label: 'Fast',
+    lifecycleSeconds: 30 * 60,
+    blurb: '30 minutes from green to mush. Demo speed.',
+  },
+  medium: {
+    id: 'medium',
+    label: 'Medium',
+    lifecycleSeconds: 8 * 60 * 60,
+    blurb: 'Plant at breakfast, eat at dinner. About 8 hours.',
+  },
+  slow: {
+    id: 'slow',
+    label: 'Slow',
+    lifecycleSeconds: 5 * 24 * 60 * 60,
+    blurb: 'Real banana time — about 5 days.',
+  },
+};
+
+export const GAME_SPEED_ORDER: GameSpeed[] = ['fast', 'medium', 'slow'];
+
+export const DEFAULT_GAME_SPEED: GameSpeed = 'fast';
+
+/** Used as a fallback for bunches saved before the multi-speed feature shipped. */
+const LEGACY_LIFECYCLE_SECONDS = GAME_SPEEDS.fast.lifecycleSeconds;
+
+/* ------------------------------------------------------------------ */
+/* User prefs                                                          */
+/* ------------------------------------------------------------------ */
+
+export interface AppPrefs {
+  default_game_speed: GameSpeed;
+}
+
+const DEFAULT_PREFS: AppPrefs = { default_game_speed: DEFAULT_GAME_SPEED };
+
+export async function loadPrefs(): Promise<AppPrefs> {
+  try {
+    const raw = await AsyncStorage.getItem(PREFS_STORAGE_KEY);
+    if (!raw) return DEFAULT_PREFS;
+    const parsed = JSON.parse(raw) as Partial<AppPrefs>;
+    return {
+      default_game_speed:
+        parsed.default_game_speed && GAME_SPEEDS[parsed.default_game_speed]
+          ? parsed.default_game_speed
+          : DEFAULT_GAME_SPEED,
+    };
+  } catch {
+    return DEFAULT_PREFS;
+  }
+}
+
+export async function savePrefs(prefs: AppPrefs): Promise<void> {
+  await AsyncStorage.setItem(PREFS_STORAGE_KEY, JSON.stringify(prefs));
+}
+
+export async function setDefaultGameSpeed(speed: GameSpeed): Promise<AppPrefs> {
+  const current = await loadPrefs();
+  const next: AppPrefs = { ...current, default_game_speed: speed };
+  await savePrefs(next);
+  return next;
+}
 
 /* ------------------------------------------------------------------ */
 /* Environments                                                        */
@@ -160,6 +246,8 @@ export interface Bunch {
   id: string;
   name: string;
   planted_iso: string;
+  /** Total seconds from ripeness 0 → 100 at 1.0× counter. Set at plant. */
+  lifecycle_seconds: number;
   bananas: Banana[];
   history: BunchEvent[];
 }
@@ -193,10 +281,15 @@ export function ripenessToStage(ripeness: number): Stage {
 }
 
 /** Seconds from current ripeness to peak (stage 6 = 65). */
-export function secondsUntilPeak(ripeness: number, env: Environment): number {
+export function secondsUntilPeak(
+  ripeness: number,
+  env: Environment,
+  lifecycleSeconds: number,
+): number {
   if (ripeness >= 65) return 0;
   const remaining = 65 - ripeness;
-  const ratePerSecond = (100 / LIFECYCLE_SECONDS) * ENVIRONMENTS[env].multiplier;
+  const ratePerSecond =
+    (100 / lifecycleSeconds) * ENVIRONMENTS[env].multiplier;
   return Math.round(remaining / ratePerSecond);
 }
 
@@ -224,7 +317,13 @@ export async function loadBunch(): Promise<Bunch | null> {
   try {
     const raw = await AsyncStorage.getItem(STORAGE_KEY);
     if (!raw) return null;
-    return JSON.parse(raw) as Bunch;
+    const parsed = JSON.parse(raw) as Bunch;
+    // Backwards compat: bunches saved before the multi-speed feature
+    // shipped have no lifecycle_seconds — they were all 30 min Fast.
+    if (typeof parsed.lifecycle_seconds !== 'number') {
+      parsed.lifecycle_seconds = LEGACY_LIFECYCLE_SECONDS;
+    }
+    return parsed;
   } catch {
     return null;
   }
@@ -246,11 +345,15 @@ export async function persistBunch(bunch: Bunch): Promise<void> {
 /* Lifecycle                                                           */
 /* ------------------------------------------------------------------ */
 
-export async function plantBunch(bunchName: string): Promise<Bunch> {
+export async function plantBunch(
+  bunchName: string,
+  speed: GameSpeed = DEFAULT_GAME_SPEED,
+): Promise<Bunch> {
   const now = new Date().toISOString();
   const trimmed = bunchName.trim() || 'The Smiths';
   // Random size 5–8 to mimic a real grocery-store bunch.
   const count = 5 + Math.floor(Math.random() * 4);
+  const speedDef = GAME_SPEEDS[speed] ?? GAME_SPEEDS[DEFAULT_GAME_SPEED];
 
   const taken = new Set<string>();
   const bananas: Banana[] = [];
@@ -274,12 +377,13 @@ export async function plantBunch(bunchName: string): Promise<Bunch> {
     id: `bunch-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
     name: trimmed,
     planted_iso: now,
+    lifecycle_seconds: speedDef.lifecycleSeconds,
     bananas,
     history: [
       {
         iso: now,
         type: 'planted',
-        detail: `${trimmed} arrived. ${count} green bananas, full of promise.`,
+        detail: `${trimmed} arrived. ${count} green bananas, ${speedDef.label.toLowerCase()} mode.`,
         glyph: '🌱',
       },
     ],
@@ -320,7 +424,8 @@ export function tickBunch(bunch: Bunch, rollEvents = true): Bunch {
     }
     anyChange = true;
     const env = ENVIRONMENTS[banana.environment];
-    const ratePerSecond = (100 / LIFECYCLE_SECONDS) * env.multiplier;
+    const ratePerSecond =
+      (100 / bunch.lifecycle_seconds) * env.multiplier;
     const newRipeness = Math.min(
       100,
       banana.ripeness + elapsedSec * ratePerSecond,
@@ -562,12 +667,21 @@ export function bunchOver(bunch: Bunch): boolean {
 export function formatLifespan(birth_iso: string, end_iso?: string): string {
   const start = new Date(birth_iso);
   const end = end_iso ? new Date(end_iso) : new Date();
-  const sec = Math.max(0, (end.getTime() - start.getTime()) / 1000);
+  return formatDuration(Math.max(0, (end.getTime() - start.getTime()) / 1000));
+}
+
+/** Compact duration: 45s, 12m, 3h 20m, 2d 4h. */
+export function formatDuration(sec: number): string {
   if (sec < 60) return `${Math.round(sec)}s`;
   if (sec < 3600) return `${Math.round(sec / 60)}m`;
-  const h = Math.floor(sec / 3600);
-  const m = Math.round((sec % 3600) / 60);
-  return m === 0 ? `${h}h` : `${h}h ${m}m`;
+  if (sec < 86400) {
+    const h = Math.floor(sec / 3600);
+    const m = Math.round((sec % 3600) / 60);
+    return m === 0 ? `${h}h` : `${h}h ${m}m`;
+  }
+  const d = Math.floor(sec / 86400);
+  const h = Math.round((sec % 86400) / 3600);
+  return h === 0 ? `${d}d` : `${d}d ${h}h`;
 }
 
 /** The earliest banana in the bunch that will hit peak (for notifications). */
@@ -576,8 +690,8 @@ export function nextBananaToPeak(bunch: Bunch): Banana | null {
   if (candidates.length === 0) return null;
   candidates.sort(
     (a, b) =>
-      secondsUntilPeak(a.ripeness, a.environment) -
-      secondsUntilPeak(b.ripeness, b.environment),
+      secondsUntilPeak(a.ripeness, a.environment, bunch.lifecycle_seconds) -
+      secondsUntilPeak(b.ripeness, b.environment, bunch.lifecycle_seconds),
   );
   return candidates[0];
 }
