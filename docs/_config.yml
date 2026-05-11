@@ -1,0 +1,13 @@
+title: Go Bananas
+description: Banana ripeness, on-device.
+url: https://harnischllc.github.io
+baseurl: /gobananas
+
+# Keep internal docs out of the published site.
+# Anything not listed here in /docs becomes publicly accessible once
+# Pages is enabled. If you add a new private subfolder, add it below.
+exclude:
+  - handoff
+  - mockups
+  - plans
+  - store

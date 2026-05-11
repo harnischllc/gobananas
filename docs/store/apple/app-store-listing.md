@@ -66,9 +66,11 @@ _86 chars_
 
 | Field | Value |
 |---|---|
-| Support URL | [DECIDE — `gobananas-cmml.onrender.com` is suspended. Likely GitHub Pages on this repo, or repo URL itself.] |
+| Support URL | https://harnischllc.github.io/gobananas/ |
 | Marketing URL | (optional) — same as support URL |
-| Privacy Policy URL | [DECIDE — same hosting question; will serve `docs/privacy.md`] |
+| Privacy Policy URL | https://harnischllc.github.io/gobananas/privacy.html |
+
+URLs go live after enabling GitHub Pages in repo settings (Settings → Pages → Source: `main` branch, `/docs` folder).
 
 ## Review notes (App Store Connect "App Review Information")
 
@@ -78,5 +80,4 @@ _86 chars_
 
 ## Open decisions
 
-- Privacy policy + support URL hosting (likely GitHub Pages at `harnischllc.github.io/gobananas/privacy` or similar — needs confirmation from Eric).
-- Whether to include screenshots taken in the bunch Tamagotchi flow alongside scan-result screenshots, or lean entirely on the scan flow.
+- Screenshot mix: how much to feature the bunch Tamagotchi flow vs. the scan flow. Tentative plan: 3 scan-result screenshots, 2 bunch screenshots, 1 history screenshot.

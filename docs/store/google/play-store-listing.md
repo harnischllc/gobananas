@@ -71,10 +71,12 @@ _73 chars_
 
 | Field | Value |
 |---|---|
-| Website | [DECIDE — `gobananas-cmml.onrender.com` is suspended. Likely GitHub Pages.] |
+| Website | https://harnischllc.github.io/gobananas/ |
 | Email | privacy@harnischllc.com |
 | Phone | (skip) |
-| Privacy Policy | [DECIDE — same hosting question; will serve `docs/privacy.md`] |
+| Privacy Policy | https://harnischllc.github.io/gobananas/privacy.html |
+
+URLs go live after enabling GitHub Pages in repo settings (Settings → Pages → Source: `main` branch, `/docs` folder).
 
 ## Target audience
 
@@ -90,5 +92,4 @@ _73 chars_
 
 ## Open decisions
 
-- Privacy policy + website URL hosting (same question as Apple — likely GitHub Pages).
-- Whether to enable Google Play's "Pre-registration" for the launch (gives some pre-launch visibility, but adds calendar pressure — probably skip).
+- Whether to enable Google Play's "Pre-registration" for the launch (gives some pre-launch visibility but adds calendar pressure — leaning skip).
