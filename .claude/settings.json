@@ -1,0 +1,14 @@
+{
+  "hooks": {
+    "SessionEnd": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "printf '%s\\n' '{\"systemMessage\":\"SHUT DOWN YOUR INFRA BEFORE CLOSING:\\n  - Render web service (gobananas-cmml.onrender.com) - suspend at https://dashboard.render.com\\n  - Render Postgres DB on the same dashboard\\n  - Any dev servers, tunnels, or MCP processes you started this session\"}'"
+          }
+        ]
+      }
+    ]
+  }
+}
