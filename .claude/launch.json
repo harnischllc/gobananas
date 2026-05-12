@@ -14,6 +14,12 @@
       "runtimeArgs": ["expo", "start", "--web", "--port", "8091"],
       "port": 8091,
       "cwd": "mobile"
+    },
+    {
+      "name": "Banana SVG preview",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["-y", "serve", "docs/mockups/banana-svg-options", "-p", "8765", "-L", "--no-clipboard"],
+      "port": 8765
     }
   ]
 }
