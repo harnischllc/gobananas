@@ -1,15 +1,16 @@
-# Apple App Store Listing — Go Bananas
+# Apple App Store Listing — Go Bananas: Banana Scanner
 
-_Draft for App Store Connect submission. Copy fields into App Store Connect at submission time._
+_Draft for App Store Connect submission. ASC record already created 2026-05-22 at ASC App ID `6772261640`._
 
 ## App Information
 
 | Field | Value | Notes |
 |---|---|---|
-| App name | Go Bananas | 10 chars (max 30) |
+| App name | Go Bananas: Banana Scanner | 26 chars (max 30). "Go Bananas" alone was already owned on the App Store. Brand on home screen + feature graphic still reads "Go Bananas" (set in `mobile/app.json` name field). |
 | Subtitle | Banana ripeness, fast. | 22 chars (max 30) |
 | Bundle ID | com.harnischllc.gobananas | Set in `mobile/app.json` |
-| SKU | gobananas-1 | Internal-only identifier |
+| SKU | gobananas-001 | Internal-only identifier (set during ASC record creation) |
+| Apple Team | TA777BLD49 (Harnisch LLC) | |
 | Primary language | English (U.S.) | |
 | Category — primary | Food & Drink | |
 | Category — secondary | Lifestyle | |

@@ -1,13 +1,14 @@
-# Google Play Store Listing — Go Bananas
+# Google Play Store Listing — Go Bananas: Banana Scanner
 
-_Draft for Google Play Console submission. Copy fields into Play Console at submission time._
+_Draft for Google Play Console submission. Play Console org account "Loggerhead Creative" (account ID 5066870933361555224) created 2026-05-22. App record TBD._
 
 ## App information
 
 | Field | Value | Notes |
 |---|---|---|
-| App name | Go Bananas | |
+| App name | Go Bananas: Banana Scanner | Matches Apple App Store name for brand consistency. "Go Bananas" alone is still the home-screen icon label. |
 | Application ID | com.harnischllc.gobananas | Set in `mobile/app.json` |
+| Publisher (developer name) | Loggerhead Creative | Set on the developer account; appears on every Play listing. |
 | Default language | English (United States) | |
 | Application type | App (not Game) | |
 | Category | Food & Drink | |
@@ -62,7 +63,7 @@ _73 chars_
 | Asset | Spec | Status |
 |---|---|---|
 | App icon (high-res) | 512×512 PNG, 32-bit, alpha | Generate from `mobile/assets/icon.png` (already 1024×1024 — downsample) |
-| Feature graphic | 1024×500 PNG | **TODO (Phase C3)** — banana icon left, "GO BANANAS" wordmark right, yellow background |
+| Feature graphic | 1024×500 PNG | ✅ Shipped at `docs/store/google/feature-graphic.png` (commit ff723be). Banana A sticker + "GO BANANAS" wordmark + "Catch every banana at its peak." tagline on yellow #F5C518. |
 | Phone screenshots | 16:9, 1080×1920 or higher, 2–8 images | **TODO (Phase C2)** |
 | 7-inch tablet screenshots | optional | Skip for v1.0 |
 | 10-inch tablet screenshots | optional | Skip for v1.0 |
@@ -72,7 +73,7 @@ _73 chars_
 | Field | Value |
 |---|---|
 | Website | https://harnischllc.github.io/gobananas/ |
-| Email | privacy@harnischllc.com |
+| Email | hello@harnischllc.com | (existing Cloudflare Email Routing alias → harnischllc@gmail.com. A dedicated privacy@ can be added before submission if Google flags hello@ as too generic.)
 | Phone | (skip) |
 | Privacy Policy | https://harnischllc.github.io/gobananas/privacy.html |
 
