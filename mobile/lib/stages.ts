@@ -34,7 +34,7 @@ export const STAGES: Record<Stage, StageDef> = {
     label: 'Green',
     description: 'Entirely green, firm and starchy. High in resistant starch.',
     vibe: "Not ready. This banana hasn't lived yet.",
-    hue: [60, 120],
+    hue: [80, 140],
     daysToNext: [1, 4],
     recommendations: [
       'Wait 3–4 days for peak sweetness',
@@ -49,7 +49,7 @@ export const STAGES: Record<Stage, StageDef> = {
     label: 'Light Green',
     description: 'Breaking toward yellow. Still firm and less sweet.',
     vibe: 'Getting there. Patience.',
-    hue: [50, 60],
+    hue: [70, 80],
     daysToNext: [1, 3],
     recommendations: ['Wait 2–3 days for better sweetness', 'Counter, not fridge'],
     color: '#a4c64a',
@@ -60,7 +60,7 @@ export const STAGES: Record<Stage, StageDef> = {
     label: 'Yellowish',
     description: 'Mostly green-yellow. Sweetness starting to show up.',
     vibe: 'Almost. Tomorrow-you will thank you.',
-    hue: [40, 50],
+    hue: [60, 70],
     daysToNext: [1, 3],
     recommendations: [
       'Wait 1–2 days for peak ripeness',
@@ -74,7 +74,7 @@ export const STAGES: Record<Stage, StageDef> = {
     label: 'More Yellow',
     description: 'Mostly yellow with some green. Starches converting to sugars.',
     vibe: 'Eatable. But not yet showing off.',
-    hue: [30, 40],
+    hue: [50, 60],
     daysToNext: [1, 3],
     recommendations: ['Wait 1 day for full sweetness', 'Already great for smoothies'],
     color: '#f0c93b',
@@ -85,7 +85,7 @@ export const STAGES: Record<Stage, StageDef> = {
     label: 'Yellow with Green Tips',
     description: 'Yellow with hints of green at the ends. The retail sweet spot.',
     vibe: "This one's having a moment. Ideal for snacking.",
-    hue: [25, 30],
+    hue: [45, 50],
     daysToNext: [1, 3],
     recommendations: ['Eat now', 'This is the peak-purchase stage'],
     color: '#f5c518',
@@ -96,7 +96,7 @@ export const STAGES: Record<Stage, StageDef> = {
     label: 'Yellow',
     description: 'Fully yellow, aromatic, peak eating quality.',
     vibe: 'Peak banana. Eat it before it changes its mind.',
-    hue: [20, 25],
+    hue: [40, 45],
     daysToNext: [1, 3],
     recommendations: ['Eat within 1–2 days', 'This is as good as bananas get'],
     color: '#f5a623',
@@ -107,7 +107,7 @@ export const STAGES: Record<Stage, StageDef> = {
     label: 'Yellow with Brown Flecks',
     description: 'Heavily speckled or browning. Overripe for fresh eating.',
     vibe: 'Past peak — but banana bread is calling.',
-    hue: [0, 20],
+    hue: [0, 40],
     daysToNext: [2, 5],
     recommendations: [
       'Banana bread, smoothies, freezing',
@@ -123,15 +123,21 @@ export const STAGES: Record<Stage, StageDef> = {
  * Direct port of hue_to_stage() in utils/color_detection.py.
  */
 export function hueToStage(hue: number): Stage {
+  // Boundaries recalibrated 2026-05-22 for real iPhone-camera banana photos.
+  // The Python original used color-theory ideals (pure yellow = 60°) but
+  // photographed bananas systematically read 15–25° higher than the ideal due
+  // to white balance, JPEG compression, and ambient lighting. First TestFlight
+  // calibration: a Stage 6/7 banana scanned at hue=40°. Shifting all bounds
+  // up by 20° from the Python defaults; further tuning from more data later.
   const h = ((hue % 360) + 360) % 360;
-  if (h >= 60 && h <= 120) return 1;
-  if (h >= 50 && h < 60) return 2;
-  if (h >= 40 && h < 50) return 3;
-  if (h >= 30 && h < 40) return 4;
-  if (h >= 25 && h < 30) return 5;
-  if (h >= 20 && h < 25) return 6;
-  if (h >= 0 && h < 20) return 7;
-  return 3; // Default for any unmapped hue, matches Python.
+  if (h >= 80 && h <= 140) return 1;
+  if (h >= 70 && h < 80) return 2;
+  if (h >= 60 && h < 70) return 3;
+  if (h >= 50 && h < 60) return 4;
+  if (h >= 45 && h < 50) return 5;
+  if (h >= 40 && h < 45) return 6;
+  if (h >= 0 && h < 40) return 7;
+  return 6; // Default for any unmapped hue. Was Stage 3 pre-calibration.
 }
 
 /**
