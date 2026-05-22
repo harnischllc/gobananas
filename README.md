@@ -1,214 +1,94 @@
 # Go Bananas 🍌
 
-A Flask-based web application that detects banana ripeness using computer vision and color analysis. Upload a photo or pick a color to get instant ripeness analysis based on the USDA banana color scale.
+A native iOS + Android app that tells you when a banana is at its peak. Point your camera, get a ripeness rating. No upload, no account, no tracking. The classifier runs entirely on the device.
 
-## 🚀 Features
+A second mode, the **Bananas** tab, lets you plant a virtual bunch of 5–8 bananas and stages their ripening based on where you store them (counter, basket, paper bag, windowsill, hook, fridge) using real-world rates.
 
-- **Image Upload**: Upload banana photos for automatic ripeness detection
-- **Color Picker**: Manually select banana color for instant analysis
-- **7-Stage Ripeness Scale**: Based on USDA banana color classification
-- **Days Until Peak**: Estimate when your banana will reach optimal ripeness
-- **Mobile-Friendly**: Responsive design with camera capture support
-- **Modern UI**: Beautiful, animated interface with smooth transitions
-- **API Endpoints**: RESTful API for programmatic access
+Built by [Harnisch LLC](https://harnischllc.com) and published on Google Play as **Loggerhead Creative**.
 
-## 📋 Project Overview
+## Where it is right now
 
-Go Bananas uses computer vision to analyze the dominant color in banana images and maps it to a 7-stage ripeness scale. The algorithm extracts hue values from images, converts them to the HSV color space, and classifies ripeness based on scientifically-proven color ranges.
+- **iOS:** in TestFlight at App Store Connect App ID `6772261640` (listing name "Go Bananas: Banana Scanner"). Not yet submitted for App Store review.
+- **Android:** Google Play Console app created at Play App ID `4973024295102408133` (publisher "Loggerhead Creative"). Internal testing track wired up via EAS submit.
+- **Bundle ID:** `com.harnischllc.gobananas` (matches across both stores).
+- **Public landing + privacy policy:** https://harnischllc.github.io/gobananas/ (served from `/docs/` on `main` via GitHub Pages).
 
-### Ripeness Stages
+## What the app does
 
-1. **Stage 1**: Green - Entirely green, firm and starchy
-2. **Stage 2**: Light Green - Breaking toward yellow, still firm
-3. **Stage 3**: Yellowish - Minimal green, begins to develop sweetness
-4. **Stage 4**: More Yellow - Mostly yellow, starches converting to sugars
-5. **Stage 5**: Yellow with Green Tips - Ideal for retail, peak for purchase
-6. **Stage 6**: Yellow - Peak eating quality, aromatic and sweet
-7. **Stage 7**: Yellow with Brown Flecks - Overripe, best for baking
+- **Scan** — take a photo, the app reads the dominant peel hue, maps it to a 7-stage USDA-style ripeness scale, and returns a 5-banana rating with persona-voiced suggestions ("Chef's kiss", "Solid pick", "Past its prime").
+- **History** — every scan saved locally with a tap-to-reopen list. Stays on the device, never synced.
+- **Bananas tab (the bunch)** — Tamagotchi-style resource game. Plant a named bunch (Phil, Carla, Greg, etc.), each banana ripens independently based on environment multiplier (counter 1.0×, basket 1.2×, paper bag 1.5×, windowsill 2.0×, hook 0.85×, fridge 0.4× with the "skin browns cosmetically, flesh stays fine" educational blurb). Eat at peak before random events (monkeys, roommates, birds) take them.
+- **You tab** — settings, opt-in toggle for future anonymous corrections (v1.1).
 
-## 🛠️ Installation
+## Tech
 
-### Prerequisites
+- **Mobile:** Expo SDK 54, React Native, TypeScript, expo-router 6, expo-image-picker for camera, AsyncStorage for history, expo-notifications for peak alerts.
+- **Classifier:** in-process JavaScript. `mobile/lib/classify.ts` decodes the captured JPEG via `jpeg-js`, samples pixels, computes the dominant hue, and `mobile/lib/stages.ts` maps it to a stage. Calibrated against real iPhone-camera banana photos (the Python original was calibrated against color theory and read ~20° too low).
+- **Build / submit:** Expo Application Services (EAS). `mobile/eas.json` is the source of truth for build profiles (development, preview, production) and submit metadata (iOS ASC App ID + Apple Team baked in; Android service-account path baked in).
+- **Hosting:** GitHub Pages for the static landing + privacy page. No backend in v1. v1.1 will likely add a tiny corrections endpoint on Cloudflare Workers.
 
-- Python 3.8 or higher
-- pip (Python package installer)
-
-### Local Setup
-
-1. **Clone the repository:**
-```bash
-git clone https://github.com/harnischllc/gobananas.git
-cd gobananas
-```
-
-2. **Create a virtual environment:**
-```bash
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-```
-
-3. **Install dependencies:**
-```bash
-pip install -r requirements.txt
-```
-
-4. **Run the application:**
-```bash
-python app.py
-```
-
-5. **Open your browser:**
-Navigate to `http://localhost:5000`
-
-## 💻 Local Development
-
-### Development Server
-
-For development with auto-reload:
-```bash
-export FLASK_DEBUG=true
-python app.py
-```
-
-### Project Structure
+## Repo layout
 
 ```
 gobananas/
-├── app.py                 # Main Flask application
-├── requirements.txt       # Python dependencies
-├── Procfile              # Deployment configuration
-├── templates/            # HTML templates
-│   ├── index.html        # Main upload interface
-│   ├── result.html       # Results display
-│   └── about.html        # About page
-├── static/               # Static assets
-│   ├── css/style.css     # Custom styling
-│   └── js/main.js        # Interactive JavaScript
-└── utils/                # Utility modules
-    └── color_detection.py # Color analysis algorithms
+├── mobile/                 the whole product (Expo + RN, what users install)
+│   ├── app/                expo-router screens (Home, History, Bananas, You, scan, result)
+│   ├── components/         shared UI (ScanCard, StageDot, DancingBanana, etc.)
+│   ├── lib/                classify.ts, stages.ts, history.ts, pet.ts, theme.ts
+│   ├── assets/             icons, splash, fonts
+│   ├── app.json            bundle IDs, version numbers, plugin config
+│   └── eas.json            build + submit profiles for EAS
+├── docs/                   GitHub Pages site + store metadata + handoffs
+│   ├── _config.yml         Jekyll config — excludes /store, /handoff, /mockups, /plans
+│   ├── index.md            landing page (Apple + Google support URL)
+│   ├── privacy.md          privacy policy (Apple + Google privacy URL)
+│   ├── store/              Apple + Google listing drafts (internal, not published)
+│   ├── handoff/            chronological session notes (internal, not published)
+│   ├── mockups/            visual reference material (internal, not published)
+│   └── plans/              detailed plan files (internal, not published)
+├── .claude/                Claude Code config (launch.json, hooks, agent worktrees)
+└── README.md               this file
 ```
 
-### API Endpoints
+## Running locally
 
-- `GET /` - Main application interface
-- `POST /classify` - Process image/color and return results
-- `POST /api/classify` - API endpoint returning JSON results
-- `GET /about` - About page with algorithm details
+You only need to touch `mobile/`. The rest is docs + config.
 
-## 🚀 Deployment to Render
+```bash
+cd mobile
+npm install --legacy-peer-deps
+npx expo start
+```
 
-### Prerequisites
+Scan the QR code with the Expo Go app on your phone (must be on the same Wi-Fi as your Mac). Or hit `s` in the terminal to switch to tunnel mode.
 
-- GitHub repository with your code
-- Render account (free tier available)
+The `--legacy-peer-deps` is required because react-dom@19 conflicts with expo-linear-gradient's pinned peer. Without it, npm refuses to resolve.
 
-### Deployment Steps
+### Health checks before any dep change
 
-1. **Connect Repository:**
-   - Log in to [Render](https://render.com)
-   - Click "New +" → "Web Service"
-   - Connect your GitHub repository
+```bash
+cd mobile
+npx tsc --noEmit      # must be silent
+npx expo-doctor       # must be 18/18
+```
 
-2. **Configure Build:**
-   - **Build Command:** `pip install -r requirements.txt`
-   - **Start Command:** `gunicorn app:app`
+## Build + submit
 
-3. **Environment Variables:**
-   - No additional environment variables needed for basic deployment
+All builds run on Expo's cloud via EAS. There is no Xcode or Android Studio toolchain required locally.
 
-4. **Deploy:**
-   - Click "Create Web Service"
-   - Render will automatically build and deploy your app
+```bash
+cd mobile
+npx -y eas-cli@latest build --platform all --profile production --auto-submit
+```
 
-### Custom Domain (Optional)
+This compiles iOS + Android builds in parallel on Expo's servers, then auto-submits the iOS build to App Store Connect (TestFlight) and the Android AAB to Google Play Console (internal testing track, draft state).
 
-1. In your Render dashboard, go to your service
-2. Click "Custom Domains"
-3. Add your domain and follow DNS configuration instructions
+Credentials baked in (see `mobile/eas.json`):
+- iOS submit: ASC App ID, Apple Team ID, Apple ID
+- Android submit: path to Google Play service-account JSON (lives outside the repo at `~/.config/eas/harnisch-llc-play-service-account.json`)
 
-## 🔬 Algorithm Explanation
+For first-time setup on a fresh machine see `docs/handoff/2026-05-12-build-pipeline-ready.md`.
 
-### Color Analysis Process
+## License
 
-1. **Image Processing:**
-   - Convert uploaded image to RGB format
-   - Transform to HSV (Hue, Saturation, Value) color space
-   - Extract dominant hue values from image pixels
-
-2. **Hue Mapping:**
-   - Map hue values (0-360°) to ripeness stages
-   - Use scientifically-proven color ranges for each stage
-   - Calculate confidence based on hue consistency
-
-3. **Stage Classification:**
-   - Stage 1 (Green): 60-120° hue
-   - Stage 2 (Light Green): 45-60° hue
-   - Stage 3 (Yellowish): 35-45° hue
-   - Stage 4 (More Yellow): 25-35° hue
-   - Stage 5 (Yellow Green Tips): 30-45° hue
-   - Stage 6 (Yellow): 20-30° hue
-   - Stage 7 (Brown Flecks): 0-20° hue
-
-4. **Peak Estimation:**
-   - Calculate average days between stages
-   - Estimate time until optimal ripeness (Stage 6)
-   - Provide stage-specific recommendations
-
-### Technical Implementation
-
-- **Computer Vision:** OpenCV for image processing
-- **Color Analysis:** HSV color space for accurate hue extraction
-- **Algorithm:** Dominant color clustering with confidence scoring
-- **Validation:** File type, size, and color format validation
-
-## 📚 Credits and Citations
-
-### USDA Banana Color Scale
-
-This application is based on the **USDA Banana Color Scale**, a scientifically-proven method for determining banana ripeness through visual color assessment.
-
-**Reference:**
-- USDA Agricultural Research Service
-- "Banana Ripening Guide" - United States Department of Agriculture
-- Color classification standards for commercial banana quality assessment
-
-### Scientific Basis
-
-The 7-stage color scale used in this application is derived from USDA research on banana ripening patterns and is widely used in commercial banana quality control and consumer guidance.
-
-**Additional References:**
-- Food and Agriculture Organization (FAO) banana quality standards
-- Postharvest handling protocols for tropical fruits
-- Colorimetry research on fruit ripening indicators
-
-## 🤝 Contributing
-
-We welcome contributions! Please follow these steps:
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
-
-### Development Guidelines
-
-- Follow PEP 8 Python style guidelines
-- Add tests for new features
-- Update documentation as needed
-- Ensure mobile responsiveness
-
-## 📄 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## 🙏 Acknowledgments
-
-- USDA for the banana color classification standards
-- OpenCV community for computer vision tools
-- Flask team for the excellent web framework
-- Bootstrap team for the responsive UI components
-
----
-
-**Made with ❤️ for banana lovers everywhere!** 🍌
+Source is not currently open. Contact Harnisch LLC for any reuse questions.
