@@ -20,7 +20,8 @@
       "buildNumber": "2",
       "infoPlist": {
         "NSCameraUsageDescription": "Go Bananas uses your camera to check banana ripeness.",
-        "NSPhotoLibraryUsageDescription": "Go Bananas can check ripeness of bananas in your photo library."
+        "NSPhotoLibraryUsageDescription": "Go Bananas can check ripeness of bananas in your photo library.",
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
