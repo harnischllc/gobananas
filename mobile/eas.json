@@ -17,6 +17,12 @@
     "production": {}
   },
   "submit": {
-    "production": {}
+    "production": {
+      "ios": {
+        "ascAppId": "6772261640",
+        "appleId": "apple@aqueroministries.org",
+        "appleTeamId": "TA777BLD49"
+      }
+    }
   }
 }
