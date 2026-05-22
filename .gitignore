@@ -26,3 +26,10 @@ ios/App/App.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/
 # Expo / RN safety net (mobile/ has its own .gitignore too)
 .expo/
 *.tsbuildinfo
+
+# Service account credentials — NEVER commit these. The real file lives
+# outside the repo at ~/.config/eas/. These patterns are belt-and-suspenders
+# in case anything lands in the repo by accident.
+*service-account*.json
+credentials/
+**/play-service-account*.json

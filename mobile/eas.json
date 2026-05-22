@@ -22,6 +22,11 @@
         "ascAppId": "6772261640",
         "appleId": "apple@aqueroministries.org",
         "appleTeamId": "TA777BLD49"
+      },
+      "android": {
+        "serviceAccountKeyPath": "/Users/ericharnisch/.config/eas/harnisch-llc-play-service-account.json",
+        "track": "internal",
+        "releaseStatus": "draft"
       }
     }
   }
