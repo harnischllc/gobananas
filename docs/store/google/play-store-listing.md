@@ -1,6 +1,6 @@
 # Google Play Store Listing — Go Bananas: Banana Scanner
 
-_Draft for Google Play Console submission. Play Console org account "Loggerhead Creative" (account ID 5066870933361555224) created 2026-05-22. App record TBD._
+_Draft for Google Play Console submission. Play Console org account "Loggerhead Creative" (account ID 5066870933361555224) created 2026-05-22. App record created same day at Play App ID `4973024295102408133`._
 
 ## App information
 
