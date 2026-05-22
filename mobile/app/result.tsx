@@ -143,6 +143,28 @@ export default function ResultScreen() {
           ))}
         </View>
 
+        {/*
+          TEMPORARY: TestFlight calibration diagnostic. Lets Eric report
+          the detected hue alongside the visual ripeness of the banana so
+          we can retune the Stage hue ranges in lib/stages.ts. Remove this
+          card and the related styles before App Store submission.
+        */}
+        <View style={[styles.card, styles.diagCard]}>
+          <Text style={styles.diagBadge}>TEST · ALGORITHM DIAGNOSTIC</Text>
+          <Text style={styles.diagLine}>
+            Hue:{' '}
+            <Text style={styles.diagValue}>{Math.round(record.hue)}°</Text>
+            {'   '}·{'   '}Stage:{' '}
+            <Text style={styles.diagValue}>{record.stage}</Text>
+            {'   '}·{'   '}Confidence:{' '}
+            <Text style={styles.diagValue}>{Math.round(record.confidence)}%</Text>
+          </Text>
+          <Text style={styles.diagHelp}>
+            If this rating feels off, screenshot this card + the photo
+            above and send to Eric. Helps tune the algorithm.
+          </Text>
+        </View>
+
       </ScrollView>
     </SafeAreaView>
   );
@@ -309,5 +331,36 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: colors.ink,
     lineHeight: 22,
+  },
+  // TEMPORARY diagnostic styles — remove with the diagnostic card before
+  // App Store submission.
+  diagCard: {
+    borderStyle: 'dashed',
+    borderColor: colors.inkSoft,
+    backgroundColor: 'transparent',
+  },
+  diagBadge: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: colors.inkSoft,
+    letterSpacing: 1.4,
+    marginBottom: 8,
+  },
+  diagLine: {
+    fontSize: 13,
+    color: colors.ink,
+    fontFamily: 'Courier New',
+    lineHeight: 20,
+  },
+  diagValue: {
+    fontWeight: '700',
+    color: colors.ink,
+  },
+  diagHelp: {
+    fontSize: 11,
+    color: colors.inkSoft,
+    marginTop: 8,
+    fontStyle: 'italic',
+    lineHeight: 16,
   },
 });
