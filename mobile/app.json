@@ -2,6 +2,7 @@
   "expo": {
     "name": "Go Bananas",
     "slug": "gobananas",
+    "owner": "harnischllc",
     "scheme": "gobananas",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -41,10 +42,17 @@
         "expo-image-picker",
         {
           "photosPermission": "Go Bananas can check ripeness of bananas in your photo library.",
-          "cameraPermission": "Go Bananas uses your camera to check banana ripeness."
+          "cameraPermission": "Go Bananas uses your camera to check banana ripeness.",
+          "microphonePermission": false
         }
       ],
       "expo-font"
-    ]
+    ],
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "12cbfe1c-51f6-4ff3-996f-3ecb1a6d6de8"
+      }
+    }
   }
 }
