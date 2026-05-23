@@ -20,8 +20,9 @@ android/.gradle/
 android/build/
 ios/App/App.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/
 
-# Claude Code — personal settings only
+# Claude Code — personal settings and ephemeral worktrees
 .claude/settings.local.json
+.claude/worktrees/
 
 # Expo / RN safety net (mobile/ has its own .gitignore too)
 .expo/
