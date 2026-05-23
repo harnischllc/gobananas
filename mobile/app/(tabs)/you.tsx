@@ -8,8 +8,6 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useEffect, useState } from 'react';
-import { useRouter } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
 
 import { colors, radius, space } from '../../lib/theme';
 import {
@@ -20,6 +18,8 @@ import {
   loadPrefs,
   setDefaultGameSpeed,
 } from '../../lib/pet';
+import { VarietyCard } from '../../components/VarietyCard';
+import { VARIETIES } from '../../lib/drops';
 
 /**
  * Stub for v1. Real surfaces this will hold:
@@ -35,7 +35,6 @@ export default function YouScreen() {
   const [optIn, setOptIn] = useState(false);
   const [gameSpeed, setGameSpeed] =
     useState<GameSpeed>(DEFAULT_GAME_SPEED);
-  const router = useRouter();
 
   useEffect(() => {
     (async () => {
@@ -106,41 +105,71 @@ export default function YouScreen() {
         </View>
 
         {/*
-          v2 rewards demo — visible in dev only. The card disappears in
-          production builds so reviewers don't see clearly-labeled demo
-          surfaces. Re-enable for v1.1 when streaks/drops ship for real.
+          Sneak-peek at v1.1's daily-scan rewards. Always visible, but
+          visually recedes from the live settings cards (bg fill + dashed
+          border) so it reads as "preview, not interactive."
         */}
-        {__DEV__ && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>🙊 V2 DEMO (dev only)</Text>
-            <Pressable
-              style={({ pressed }) => [
-                styles.card,
-                styles.rewardsRow,
-                pressed && { opacity: 0.7 },
-              ]}
-              onPress={() => router.push('/rewards')}
-              accessibilityRole="button"
-              accessibilityLabel="Open the rewards demo"
-            >
-              <View style={styles.rewardsGlyphWrap}>
-                <Text style={styles.rewardsGlyph}>📦</Text>
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>
+            COMING SOON · DAILY-SCAN REWARDS
+          </Text>
+          <View
+            style={styles.previewCard}
+            accessible={true}
+            accessibilityRole="text"
+            accessibilityLabel="Coming soon: daily scan rewards, drops, and varieties. Preview only, not interactive in this build."
+          >
+            <View style={styles.previewStreakChip}>
+              <Text style={styles.previewStreakGlyph}>🔥</Text>
+              <Text style={styles.previewStreakText}>Streak</Text>
+              <View style={styles.previewTagPill}>
+                <Text style={styles.previewTagText}>PREVIEW</Text>
+              </View>
+            </View>
+
+            <Text style={styles.previewCaption}>
+              One scan a day unlocks a crate. Keep the streak alive. Build the
+              collection.
+            </Text>
+
+            <View style={styles.previewCrateRow}>
+              <View style={styles.previewCrateWrap}>
+                <Text style={styles.previewCrateGlyph}>📦</Text>
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={styles.rewardsTitle}>Daily-scan rewards</Text>
-                <Text style={styles.rewardsSub}>
-                  Streaks, crate drops, fictional varieties, holiday theming.
-                  Demo controls included.
+                <Text style={styles.previewCrateTitle}>Today's crate</Text>
+                <Text style={styles.previewCrateSub}>
+                  Drops when v1.1 ships.
                 </Text>
               </View>
-              <Ionicons
-                name="chevron-forward"
-                size={18}
-                color={colors.inkSoft}
-              />
-            </Pressable>
+            </View>
+
+            <View
+              pointerEvents="none"
+              style={styles.previewVarietyRow}
+              accessibilityElementsHidden={true}
+              importantForAccessibility="no-hide-descendants"
+            >
+              {['baboon_delight', 'yellow_scorcher', 'lunar_banana'].map(
+                (id) => {
+                  const variety = VARIETIES.find((v) => v.id === id);
+                  if (!variety) return null;
+                  return (
+                    <VarietyCard
+                      key={id}
+                      variety={variety}
+                      unlocked={false}
+                    />
+                  );
+                },
+              )}
+            </View>
+
+            <Text style={styles.previewFootnote}>
+              Preview only. Nothing's wired up yet.
+            </Text>
           </View>
-        )}
+        </View>
 
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>HELP US GET SMARTER</Text>
@@ -225,32 +254,90 @@ const styles = StyleSheet.create({
     borderColor: colors.line,
     padding: space.md,
   },
-  rewardsRow: {
+  previewCard: {
+    backgroundColor: colors.bg,
+    marginHorizontal: space.md,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: colors.line,
+    borderStyle: 'dashed',
+    padding: space.md,
+  },
+  previewStreakChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    alignSelf: 'flex-start',
+    backgroundColor: colors.line,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: radius.pill,
+  },
+  previewStreakGlyph: {
+    fontSize: 14,
+  },
+  previewStreakText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: colors.inkSoft,
+  },
+  previewTagPill: {
+    backgroundColor: colors.bg,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: radius.pill,
+  },
+  previewTagText: {
+    fontSize: 9,
+    fontWeight: '700',
+    letterSpacing: 0.8,
+    color: colors.inkSoft,
+  },
+  previewCaption: {
+    fontSize: 12.5,
+    color: colors.inkSoft,
+    lineHeight: 17,
+    marginTop: 10,
+  },
+  previewCrateRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
+    marginTop: 14,
   },
-  rewardsGlyphWrap: {
+  previewCrateWrap: {
     width: 44,
     height: 44,
-    borderRadius: 14,
-    backgroundColor: colors.yellowSoft,
+    borderRadius: radius.md,
+    backgroundColor: colors.line,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  rewardsGlyph: {
+  previewCrateGlyph: {
     fontSize: 22,
+    opacity: 0.55,
   },
-  rewardsTitle: {
-    fontSize: 15,
+  previewCrateTitle: {
+    fontSize: 14,
     fontWeight: '700',
-    color: colors.ink,
+    color: colors.inkSoft,
   },
-  rewardsSub: {
+  previewCrateSub: {
     fontSize: 12,
     color: colors.inkSoft,
     marginTop: 2,
-    lineHeight: 16,
+  },
+  previewVarietyRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 14,
+    opacity: 0.55,
+  },
+  previewFootnote: {
+    fontSize: 11,
+    color: colors.inkSoft,
+    fontStyle: 'italic',
+    marginTop: 12,
   },
   toggleRow: {
     flexDirection: 'row',
