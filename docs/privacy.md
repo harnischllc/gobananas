@@ -1,6 +1,6 @@
 # Privacy Policy — Go Bananas
 
-_Last updated: May 10, 2026_
+_Last updated: May 24, 2026_
 
 Go Bananas is a banana ripeness scanning app published by Harnisch LLC ("we", "us"). This policy explains what data the app does and does not collect.
 
@@ -48,4 +48,4 @@ We may update this policy from time to time. Material changes will be noted at t
 
 ## Contact
 
-Questions about this policy? Email **privacy@harnischllc.com**
+Questions about this policy? Email **info@harnischllc.com**
