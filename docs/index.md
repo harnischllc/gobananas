@@ -12,7 +12,7 @@ Everything runs on your phone. No upload, no account, no tracking.
 
 ## Support
 
-Questions, bug reports, or feature requests: **eric.harnisch@gmail.com**
+Questions, bug reports, or feature requests: **info@harnischllc.com**
 
 ## Privacy
 

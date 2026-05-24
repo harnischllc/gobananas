@@ -73,7 +73,7 @@ _73 chars_
 | Field | Value |
 |---|---|
 | Website | https://harnischllc.github.io/gobananas/ |
-| Email | hello@harnischllc.com | (existing Cloudflare Email Routing alias → harnischllc@gmail.com. A dedicated privacy@ can be added before submission if Google flags hello@ as too generic.)
+| Email | info@harnischllc.com | Standardized 2026-05-24 as the public contact across Play developer account, Play listing, privacy policy, and Apple listing. Routes via Cloudflare Email Routing to gmail.
 | Phone | (skip) |
 | Privacy Policy | https://harnischllc.github.io/gobananas/privacy.html |
 

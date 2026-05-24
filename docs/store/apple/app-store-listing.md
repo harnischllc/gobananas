@@ -76,7 +76,7 @@ URLs go live after enabling GitHub Pages in repo settings (Settings → Pages �
 ## Review notes (App Store Connect "App Review Information")
 
 - **Demo account:** N/A — no login.
-- **Contact information:** Eric Harnisch, eric.harnisch@gmail.com.
+- **Contact information:** Eric Harnisch, info@harnischllc.com.
 - **Notes to reviewer:** "This app classifies banana ripeness entirely on-device. No backend. No data collection. The 'Bananas' tab is a local Tamagotchi-style game using the same color science. To test: take a photo of any banana (or any yellow/green/brown object as a smoke test); the result will appear in 1–2 seconds with no network activity."
 
 ## Open decisions
