@@ -49,7 +49,7 @@ On weak areas: explain steps, show me which buttons to click, don't assume I kno
 - TestFlight groups: "Beta Bananas" (external, public join link active), "Team (Expo)" (internal)
 - Google Play Console: legal entity HARNISCH LLC, public developer name "Loggerhead Creative", developer account ID 5066870933361555224, app ID 4973024295102408133, package `com.harnischllc.gobananas`. The Loggerhead Creative dev account is owned by a separate Google account from harnischllc@gmail.com — switch profile to reach it. Privacy URL updated to https://bananascanner.com/privacy on 2026-05-24 (staged, not yet sent to Google for review).
 - Play tester list: "Banana Testers" (internal testing)
-- EAS project: linked via `eas init` (commit `7a15e3d`). `appVersionSource: remote` — EAS auto-manages buildNumber/versionCode, do not hand-edit `app.json`. Use `npm run ship:ios` / `ship:android` / `ship` from `mobile/` to build + auto-submit in one command.
+- EAS project: linked via `eas init` (commit `7a15e3d`). `appVersionSource: local` — bump `app.json` `ios.buildNumber` (and `android.versionCode` when shipping Android) BEFORE each `npm run ship:ios` / `ship:android`. Remote source was tried 2026-05-24 and got stuck on 4 across multiple builds; reverted to local in commit `79c0476`. Use `npm run ship:ios` / `ship:android` / `ship` from `mobile/` to build + auto-submit in one command.
 - EAS submit: iOS uses `apple@aqueroministries.org` (team `TA777BLD49`); Android uses Play service account JSON at `/Users/ericharnisch/.config/eas/harnisch-llc-play-service-account.json`, track `internal`, releaseStatus `draft`.
 - Render service: fully shut down 2026-05-24.
 - Feedback email for testers: eric.harnisch@gmail.com (decision locked, no alias)
