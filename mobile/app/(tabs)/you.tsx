@@ -204,7 +204,7 @@ export default function YouScreen() {
             <Text style={styles.aboutTitle}>Go Bananas</Text>
             <Text style={styles.aboutBody}>
               On-device banana ripeness scanning. Photos never leave your
-              phone. Web version at gobananas-cmml.onrender.com.
+              phone. More at bananascanner.com.
             </Text>
           </View>
         </View>
