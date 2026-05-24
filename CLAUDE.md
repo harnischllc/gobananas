@@ -4,20 +4,20 @@ Read this before any work. If something's not covered here, ask before assuming.
 
 ## What this is
 
-Go Bananas (full name: "Go Bananas: Banana Scanner") is a native iPhone app that scans bananas with the camera and classifies their ripeness stage using a custom hue-based classifier. Solo hobby project run under Harnisch LLC. Currently in TestFlight first-external review for build 1.0.0 (3). No public App Store release yet.
+Go Bananas (full name: "Go Bananas: Banana Scanner") is a native mobile app (iOS + Android) that scans bananas with the camera and classifies their ripeness stage using a custom hue-based classifier. Solo hobby project run under Harnisch LLC. iOS is live in TestFlight external testing (Beta Bananas group, 3 testers on build 1.0.0 (4), public TestFlight join link active). Android is in Google Play internal testing for versionCode 2 (Loggerhead Creative dev account). 10 of 11 Play Console setup tasks done as of 2026-05-24, only Store listing remains. No public release on either store yet.
 
-Stack: Expo + React Native (the entire product lives in `mobile/`). EAS build pipeline is set up. GitHub Pages marketing/support site lives under `/docs`.
+Stack: Expo + React Native, the mobile app lives in `mobile/`. EAS build pipeline: `npm run ship:ios` from `mobile/` builds and auto-submits to TestFlight in one step (appVersionSource is `remote` so EAS auto-bumps buildNumber). Marketing + privacy site lives in a separate repo at `github.com/harnischllc/bananascanner-website`, deployed to a Cloudflare Worker at `https://bananascanner.com`. The `/docs` folder in this repo is the old GitHub Pages site, now stale and replaced by bananascanner.com.
 
 ## What it used to be
 
 - Originally a Flask webapp wrapped in a Capacitor shell to act as a "mobile" app. That whole approach was killed on 2026-05-10 in commit `e945d1e`.
-- The Render service that hosted the Flask backend is being shut down (verify status if it matters; a SessionEnd hook in `.claude/settings.json` reminds about this).
+- The Render service that hosted the Flask backend is fully shut down as of 2026-05-24. The SessionEnd hook in `.claude/settings.json` that reminded about this can be removed if you find it noisy.
 - Don't resurrect the Flask backend, Capacitor shell, or any browser-runtime path. `mobile/` is the entire product.
 
 ## My skill by area
 
 - **Strong:** Python, Flask, web HTML/CSS, server deploys, git basics, general scripting.
-- **Weak or learning:** React Native, Expo, EAS build/submit, TestFlight, App Store Connect, iOS code signing, Xcode, Apple Developer Program plumbing in general.
+- **Weak or learning:** React Native, Expo, EAS build/submit, TestFlight, App Store Connect, iOS code signing, Xcode, Apple Developer Program plumbing in general. Same level of weak on the Android side: Google Play Console, internal/closed/open testing tracks, Play store listing requirements, content rating / data safety declarations.
 
 On weak areas: explain steps, show me which buttons to click, don't assume I know the vocab. On strong areas: skip the basics; I'll ask if I need them.
 
@@ -25,7 +25,7 @@ On weak areas: explain steps, show me which buttons to click, don't assume I kno
 
 - Project type: solo hobby (under Harnisch LLC).
 - Branching: flat main. Commit directly to main. No feature branches, worktrees, or PRs unless I explicitly ask.
-- "Done" right now means: in TestFlight and working on my phone. Public App Store release is a separate milestone.
+- "Done" right now means: in TestFlight (iOS) or Play internal testing (Android) and working on my phone. Public release on either store is a separate milestone.
 - Iterating vs shipping: phone testing = iterate mode, not ship mode. Don't open PRs unless I explicitly say "let's ship."
 - Session shape: short bursts. Save state between decisions, don't push through to a full spec. I pivot mid-session and that's usually fine.
 
@@ -38,39 +38,46 @@ On weak areas: explain steps, show me which buttons to click, don't assume I kno
 - Touch deploy or CI config.
 - Run destructive git commands (reset --hard, force push, branch -D, etc.).
 - Re-introduce the deleted Flask backend or Capacitor shell.
-- Write App Store listing copy, marketing pages, or anything user-facing without me.
+- Write App Store or Play Store listing copy, marketing pages, or anything user-facing without me.
 
 ## Where things live
 
-- Repo: https://github.com/harnischllc/gobananas
-- App Store Connect app ID: 6772261640 (team: Harnisch LLC)
-- TestFlight groups: "Beta Bananas" (external), "Team (Expo)" (internal)
-- EAS project: linked via `eas init` (commit `7a15e3d`)
-- GitHub Pages: served from `/docs` in this repo
-- Render service: [TODO: confirm whether it's fully shut down or still draining]
-- Custom domain (if any): [TODO]
-- Feedback email for testers: eric.harnisch@gmail.com (unless I set up an alias later)
+- Mobile repo (this one): https://github.com/harnischllc/gobananas
+- Website repo (Astro + CF Workers, hosts privacy + support): https://github.com/harnischllc/bananascanner-website
+- Live site: https://bananascanner.com (privacy at /privacy, support at /support). Domain registered at Cloudflare Registrar (2026-05-24).
+- App Store Connect app ID: 6772261640 (team: Harnisch LLC). Privacy URL set to https://bananascanner.com/privacy.
+- TestFlight groups: "Beta Bananas" (external, public join link active), "Team (Expo)" (internal)
+- Google Play Console: legal entity HARNISCH LLC, public developer name "Loggerhead Creative", developer account ID 5066870933361555224, app ID 4973024295102408133, package `com.harnischllc.gobananas`. The Loggerhead Creative dev account is owned by a separate Google account from harnischllc@gmail.com — switch profile to reach it. Privacy URL updated to https://bananascanner.com/privacy on 2026-05-24 (staged, not yet sent to Google for review).
+- Play tester list: "Banana Testers" (internal testing)
+- EAS project: linked via `eas init` (commit `7a15e3d`). `appVersionSource: remote` — EAS auto-manages buildNumber/versionCode, do not hand-edit `app.json`. Use `npm run ship:ios` / `ship:android` / `ship` from `mobile/` to build + auto-submit in one command.
+- EAS submit: iOS uses `apple@aqueroministries.org` (team `TA777BLD49`); Android uses Play service account JSON at `/Users/ericharnisch/.config/eas/harnisch-llc-play-service-account.json`, track `internal`, releaseStatus `draft`.
+- Render service: fully shut down 2026-05-24.
+- Feedback email for testers: eric.harnisch@gmail.com (decision locked, no alias)
+- Cloudflare account ID (Harnisch LLC): `a73bfcc0f66055f7da62abe390d117c8`
 
 ## Vocabulary
 
 - "the classifier" = the hue-based ripeness classification logic in `mobile/` (recently recalibrated +20° for real iPhone photos in commit `2ffdd14`).
 - "stages" / "stage of ripeness" = the discrete ripeness categories the classifier returns (green through overripe).
 - "the diagnostic" = the calibration data panel at the bottom of the result screen, added in `8328b9d`, used to debug misclassifications.
-- "Beta Bananas" = the external TestFlight group.
-- "Team (Expo)" = the internal TestFlight group.
+- "Beta Bananas" = the external TestFlight group (iOS).
+- "Team (Expo)" = the internal TestFlight group (iOS).
+- "Banana Testers" = the Google Play internal testing list (Android).
+- "Loggerhead Creative" = Eric's DBA used for development projects under Harnisch LLC. It's the public developer name on Google Play for Go Bananas; the underlying legal entity is still Harnisch LLC.
 - "the webapp" = dead. Refers to the deleted Flask + Capacitor approach. If I say this, I mean the historical thing, not anything we should touch.
 
 ## Budget and ceiling
 
 - Apple Developer Program ($99/year) is paid.
+- Google Play Console developer registration ($25 one-time) is paid.
 - Otherwise: free tiers only. No new paid services without asking.
 - Render service is being wound down on purpose; don't suggest paid alternatives for it.
 
 ## Open questions I haven't answered yet
 
-- Is the Render service actually shut down, or still running?
-- Do I need a dedicated feedback email alias for beta testers, or is eric.harnisch@gmail.com fine for now?
 - App Store public release: timing, listing copy, screenshots, pricing (free? free with future paid features?). Not drafting any of this until I say so.
+- Play Store: 1 of 11 setup tasks remains (Store listing). The other 10 are done. Privacy URL was updated to bananascanner.com/privacy on 2026-05-24 but not yet sent for Google review — send from Publishing overview when ready.
+- v1.1 rewards loop: there's a `__DEV__`-gated demo at `mobile/app/rewards.tsx` + `lib/drops.ts` + `lib/streak.ts` + components. Flip the flag when ready. See `memory/project_gobananas.md` v2.0 ideas for the strategic thesis.
 - Auth: currently none. Stays none unless I explicitly add a reason for it.
 
 ## Writing style for replies
