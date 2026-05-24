@@ -7,6 +7,7 @@ import {
   Image,
   Pressable,
   Share,
+  Linking,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -55,6 +56,20 @@ export default function ResultScreen() {
     } catch (err) {
       console.warn(err);
     }
+  };
+
+  const handleReportMisclassification = () => {
+    const subject = encodeURIComponent('Go Bananas misclassification');
+    const body = encodeURIComponent(
+      `The app called my banana Stage ${record.stage} (${def.label}).\n` +
+        `Hue: ${Math.round(record.hue)}°\n` +
+        `Confidence: ${Math.round(record.confidence)}%\n\n` +
+        `I'd actually call it stage: \n\n` +
+        `If you can, attach a screenshot of the result screen so the diagnostic data goes along with this.\n`,
+    );
+    Linking.openURL(
+      `mailto:info@harnischllc.com?subject=${subject}&body=${body}`,
+    );
   };
 
   return (
@@ -160,9 +175,21 @@ export default function ResultScreen() {
             <Text style={styles.diagValue}>{Math.round(record.confidence)}%</Text>
           </Text>
           <Text style={styles.diagHelp}>
-            If this rating feels off, screenshot this card + the photo
-            above and send to Eric. Helps tune the algorithm.
+            If this rating feels off, tap Report below. Helps tune the
+            algorithm.
           </Text>
+          <Pressable
+            onPress={handleReportMisclassification}
+            accessibilityRole="button"
+            accessibilityLabel="Report misclassification by email"
+            style={({ pressed }) => [
+              styles.reportBtn,
+              pressed && { opacity: 0.7 },
+            ]}
+          >
+            <Ionicons name="mail-outline" size={15} color={colors.ink} />
+            <Text style={styles.reportBtnLabel}>Report misclassification</Text>
+          </Pressable>
         </View>
 
       </ScrollView>
@@ -362,5 +389,23 @@ const styles = StyleSheet.create({
     marginTop: 8,
     fontStyle: 'italic',
     lineHeight: 16,
+  },
+  reportBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    alignSelf: 'flex-start',
+    marginTop: 10,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: radius.pill,
+    borderWidth: 1,
+    borderColor: colors.inkSoft,
+    backgroundColor: colors.card,
+  },
+  reportBtnLabel: {
+    fontSize: 12.5,
+    fontWeight: '600',
+    color: colors.ink,
   },
 });

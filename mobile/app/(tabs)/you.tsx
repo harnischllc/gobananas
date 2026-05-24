@@ -5,6 +5,7 @@ import {
   ScrollView,
   Switch,
   Pressable,
+  Linking,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useEffect, useState } from 'react';
@@ -31,6 +32,23 @@ import { VARIETIES } from '../../lib/drops';
  * For the demo build the toggle does nothing — it's there to anchor the
  * conversation about how the consent UX should feel, not to ship a feature.
  */
+function AboutLink({ label, url }: { label: string; url: string }) {
+  return (
+    <Pressable
+      onPress={() => Linking.openURL(url)}
+      accessibilityRole="link"
+      accessibilityLabel={label}
+      hitSlop={6}
+      style={({ pressed }) => [
+        styles.aboutLinkRow,
+        pressed && { opacity: 0.6 },
+      ]}
+    >
+      <Text style={styles.aboutLink}>{label}</Text>
+    </Pressable>
+  );
+}
+
 export default function YouScreen() {
   const [optIn, setOptIn] = useState(false);
   const [gameSpeed, setGameSpeed] =
@@ -191,6 +209,12 @@ export default function YouScreen() {
                 thumbColor="#fff"
               />
             </View>
+            <View style={styles.optInLinkWrap}>
+              <AboutLink
+                label="Read the privacy policy"
+                url="https://bananascanner.com/privacy"
+              />
+            </View>
           </View>
           <Text style={styles.note}>
             Coming soon: anonymous corrections will help tune the algorithm.
@@ -202,9 +226,42 @@ export default function YouScreen() {
           <Text style={styles.sectionTitle}>ABOUT</Text>
           <View style={styles.card}>
             <Text style={styles.aboutTitle}>Go Bananas</Text>
+            <Text style={styles.aboutTagline}>
+              Catch every banana at its peak.
+            </Text>
             <Text style={styles.aboutBody}>
-              On-device banana ripeness scanning. Photos never leave your
-              phone. More at bananascanner.com.
+              On-device ripeness scanning. Photos never leave your phone.
+            </Text>
+
+            <View style={styles.linkList}>
+              <AboutLink
+                label="bananascanner.com"
+                url="https://bananascanner.com/"
+              />
+              <AboutLink
+                label="Privacy policy"
+                url="https://bananascanner.com/privacy"
+              />
+              <AboutLink
+                label="Support & contact"
+                url="https://bananascanner.com/support"
+              />
+              <AboutLink
+                label="Email info@harnischllc.com"
+                url="mailto:info@harnischllc.com"
+              />
+            </View>
+
+            <Text style={styles.aboutFooter}>
+              Published by{' '}
+              <Text
+                style={styles.aboutFooterLink}
+                onPress={() => Linking.openURL('https://harnischllc.com')}
+                accessibilityRole="link"
+              >
+                Harnisch LLC
+              </Text>
+              .
             </Text>
           </View>
         </View>
@@ -343,6 +400,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
   },
+  optInLinkWrap: {
+    marginTop: 10,
+    alignSelf: 'flex-start',
+  },
   toggleTitle: {
     fontSize: 15,
     fontWeight: '700',
@@ -366,11 +427,42 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: colors.ink,
   },
+  aboutTagline: {
+    fontSize: 13.5,
+    fontStyle: 'italic',
+    color: colors.ink,
+    marginTop: 4,
+    lineHeight: 18,
+  },
   aboutBody: {
     fontSize: 13,
     color: colors.inkSoft,
     marginTop: 4,
     lineHeight: 18,
+  },
+  linkList: {
+    marginTop: 12,
+    gap: 6,
+  },
+  aboutLinkRow: {
+    paddingVertical: 4,
+  },
+  aboutLink: {
+    fontSize: 13.5,
+    fontWeight: '600',
+    color: colors.brown,
+    textDecorationLine: 'underline',
+  },
+  aboutFooter: {
+    fontSize: 12,
+    color: colors.inkSoft,
+    marginTop: 14,
+    lineHeight: 17,
+  },
+  aboutFooterLink: {
+    color: colors.brown,
+    textDecorationLine: 'underline',
+    fontWeight: '600',
   },
   speedHead: {
     fontSize: 15,
