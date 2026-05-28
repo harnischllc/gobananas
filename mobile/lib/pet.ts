@@ -90,9 +90,13 @@ const LEGACY_LIFECYCLE_SECONDS = GAME_SPEEDS.fast.lifecycleSeconds;
 
 export interface AppPrefs {
   default_game_speed: GameSpeed;
+  music_enabled: boolean;
 }
 
-const DEFAULT_PREFS: AppPrefs = { default_game_speed: DEFAULT_GAME_SPEED };
+const DEFAULT_PREFS: AppPrefs = {
+  default_game_speed: DEFAULT_GAME_SPEED,
+  music_enabled: false,
+};
 
 export async function loadPrefs(): Promise<AppPrefs> {
   try {
@@ -104,6 +108,10 @@ export async function loadPrefs(): Promise<AppPrefs> {
         parsed.default_game_speed && GAME_SPEEDS[parsed.default_game_speed]
           ? parsed.default_game_speed
           : DEFAULT_GAME_SPEED,
+      music_enabled:
+        typeof parsed.music_enabled === 'boolean'
+          ? parsed.music_enabled
+          : DEFAULT_PREFS.music_enabled,
     };
   } catch {
     return DEFAULT_PREFS;
@@ -117,6 +125,13 @@ export async function savePrefs(prefs: AppPrefs): Promise<void> {
 export async function setDefaultGameSpeed(speed: GameSpeed): Promise<AppPrefs> {
   const current = await loadPrefs();
   const next: AppPrefs = { ...current, default_game_speed: speed };
+  await savePrefs(next);
+  return next;
+}
+
+export async function setMusicEnabled(enabled: boolean): Promise<AppPrefs> {
+  const current = await loadPrefs();
+  const next: AppPrefs = { ...current, music_enabled: enabled };
   await savePrefs(next);
   return next;
 }

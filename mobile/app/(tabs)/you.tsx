@@ -8,7 +8,8 @@ import {
   Linking,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
+import { useFocusEffect } from 'expo-router';
 
 import { colors, radius, space } from '../../lib/theme';
 import {
@@ -18,7 +19,9 @@ import {
   GameSpeed,
   loadPrefs,
   setDefaultGameSpeed,
+  setMusicEnabled,
 } from '../../lib/pet';
+import { pauseMusic } from '../../lib/audio';
 import { VarietyCard } from '../../components/VarietyCard';
 import { VARIETIES } from '../../lib/drops';
 
@@ -53,17 +56,43 @@ export default function YouScreen() {
   const [optIn, setOptIn] = useState(false);
   const [gameSpeed, setGameSpeed] =
     useState<GameSpeed>(DEFAULT_GAME_SPEED);
+  const [musicOn, setMusicOn] = useState(false);
 
   useEffect(() => {
     (async () => {
       const prefs = await loadPrefs();
       setGameSpeed(prefs.default_game_speed);
+      setMusicOn(prefs.music_enabled);
     })();
   }, []);
+
+  /** Re-read prefs on focus so a toggle made on the Bananas tab is reflected. */
+  useFocusEffect(
+    useCallback(() => {
+      let alive = true;
+      (async () => {
+        const prefs = await loadPrefs();
+        if (!alive) return;
+        setGameSpeed(prefs.default_game_speed);
+        setMusicOn(prefs.music_enabled);
+      })();
+      return () => {
+        alive = false;
+      };
+    }, []),
+  );
 
   const handleSelectSpeed = async (speed: GameSpeed) => {
     setGameSpeed(speed);
     await setDefaultGameSpeed(speed);
+  };
+
+  const handleToggleMusic = async (next: boolean) => {
+    setMusicOn(next);
+    await setMusicEnabled(next);
+    // The Bananas tab handles playback; if the user turns music off from
+    // here while it's mid-play on the other tab, stop it immediately.
+    if (!next) pauseMusic();
   };
 
   const currentSpeedDef = GAME_SPEEDS[gameSpeed];
@@ -119,6 +148,28 @@ export default function YouScreen() {
               })}
             </View>
             <Text style={styles.speedBlurb}>{currentSpeedDef.blurb}</Text>
+          </View>
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>SOUND</Text>
+          <View style={styles.card}>
+            <View style={styles.toggleRow}>
+              <View style={{ flex: 1, paddingRight: 12 }}>
+                <Text style={styles.toggleTitle}>Music on game screen</Text>
+                <Text style={styles.toggleSub}>
+                  Plays an 8-bit samba loop while you're on the Bananas tab.
+                  Off by default. Respects your phone's silent switch and
+                  mixes with anything else you have playing.
+                </Text>
+              </View>
+              <Switch
+                value={musicOn}
+                onValueChange={handleToggleMusic}
+                trackColor={{ false: colors.line, true: colors.accent }}
+                thumbColor="#fff"
+              />
+            </View>
           </View>
         </View>
 
