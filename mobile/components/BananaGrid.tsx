@@ -98,8 +98,11 @@ const styles = StyleSheet.create({
     marginTop: space.md,
   },
   tile: {
+    // Three-column grid. Fixed basis with no flexGrow so an orphan tile
+    // in a partial row (e.g. the 7th banana) stays the same width as the
+    // others instead of stretching to fill the row.
     flexBasis: '31%',
-    flexGrow: 1,
+    flexGrow: 0,
     borderRadius: radius.md,
     paddingVertical: 12,
     paddingHorizontal: 8,
