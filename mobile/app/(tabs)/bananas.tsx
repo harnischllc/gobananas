@@ -24,6 +24,7 @@ import {
   Bunch,
   Environment,
   GAME_SPEEDS,
+  GAME_SPEED_ORDER,
   GameSpeed,
   DEFAULT_GAME_SPEED,
   loadBunch,
@@ -223,6 +224,7 @@ export default function BananasScreen() {
         value={bunchNameInput}
         speed={plantSpeed}
         onChange={setBunchNameInput}
+        onChangeSpeed={setPlantSpeed}
         onCancel={() => setNamingOpen(false)}
         onConfirm={confirmPlant}
       />
@@ -311,6 +313,7 @@ function NamingModal({
   value,
   speed,
   onChange,
+  onChangeSpeed,
   onCancel,
   onConfirm,
 }: {
@@ -318,6 +321,7 @@ function NamingModal({
   value: string;
   speed: GameSpeed;
   onChange: (v: string) => void;
+  onChangeSpeed: (s: GameSpeed) => void;
   onCancel: () => void;
   onConfirm: () => void;
 }) {
@@ -351,12 +355,36 @@ function NamingModal({
           />
           <View style={styles.speedChip}>
             <Text style={styles.speedChipLabel}>SPEED</Text>
-            <Text style={styles.speedChipValue}>
-              {speedDef.label} · {speedDef.blurb}
-            </Text>
-            <Text style={styles.speedChipHint}>
-              Change in You → Game speed.
-            </Text>
+            <View style={styles.speedOptions}>
+              {GAME_SPEED_ORDER.map((id) => {
+                const def = GAME_SPEEDS[id];
+                const selected = id === speed;
+                return (
+                  <Pressable
+                    key={id}
+                    onPress={() => onChangeSpeed(id)}
+                    accessibilityRole="button"
+                    accessibilityState={{ selected }}
+                    accessibilityLabel={`${def.label} speed`}
+                    style={({ pressed }) => [
+                      styles.speedOption,
+                      selected && styles.speedOptionSelected,
+                      pressed && { opacity: 0.85 },
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.speedOptionText,
+                        selected && styles.speedOptionTextSelected,
+                      ]}
+                    >
+                      {def.label}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+            <Text style={styles.speedChipValue}>{speedDef.blurb}</Text>
           </View>
           <View style={styles.modalActions}>
             <Pressable
@@ -612,15 +640,38 @@ const styles = StyleSheet.create({
     color: colors.inkSoft,
   },
   speedChipValue: {
+    fontSize: 12,
+    color: colors.inkSoft,
+    marginTop: 8,
+    fontStyle: 'italic',
+    lineHeight: 16,
+  },
+  speedOptions: {
+    flexDirection: 'row',
+    gap: 6,
+    marginTop: 6,
+  },
+  speedOption: {
+    flex: 1,
+    paddingVertical: 8,
+    paddingHorizontal: 8,
+    borderRadius: radius.pill,
+    backgroundColor: colors.bg,
+    borderWidth: 1,
+    borderColor: colors.line,
+    alignItems: 'center',
+  },
+  speedOptionSelected: {
+    backgroundColor: colors.accent,
+    borderColor: colors.accentDeep,
+  },
+  speedOptionText: {
     fontSize: 13,
     fontWeight: '600',
-    color: colors.ink,
-    marginTop: 2,
-  },
-  speedChipHint: {
-    fontSize: 11,
     color: colors.inkSoft,
-    marginTop: 4,
-    fontStyle: 'italic',
+  },
+  speedOptionTextSelected: {
+    color: colors.ink,
+    fontWeight: '700',
   },
 });
