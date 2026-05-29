@@ -23,6 +23,8 @@ import { DancingBanana } from '../../components/DancingBanana';
 import {
   Bunch,
   Environment,
+  ENVIRONMENTS,
+  ENVIRONMENT_ORDER,
   GAME_SPEEDS,
   GAME_SPEED_ORDER,
   GameSpeed,
@@ -64,6 +66,10 @@ export default function BananasScreen() {
   const [namingOpen, setNamingOpen] = useState(false);
   const [bunchNameInput, setBunchNameInput] = useState('');
   const [plantSpeed, setPlantSpeed] = useState<GameSpeed>(DEFAULT_GAME_SPEED);
+  // Placement walkthrough: when non-null, modal walks the user through
+  // banana N at index `placementIndex`, asking where each one should live.
+  const [placementBunch, setPlacementBunch] = useState<Bunch | null>(null);
+  const [placementIndex, setPlacementIndex] = useState(0);
 
   /** Load on mount, catch up time without rolling random events. */
   useEffect(() => {
@@ -113,7 +119,43 @@ export default function BananasScreen() {
     setBunch(next);
     setSelectedId(next.bananas[0]?.id ?? null);
     setNamingOpen(false);
-    scheduleBunchPeakAlert(next).catch(() => {});
+    // Hand off to the placement walkthrough. Peak-alert scheduling is
+    // deferred until placement finishes (or is skipped) so it uses the
+    // final environment mix, not the all-counter default.
+    setPlacementBunch(next);
+    setPlacementIndex(0);
+  };
+
+  const finalizePlacement = (finalBunch: Bunch) => {
+    setBunch(finalBunch);
+    setPlacementBunch(null);
+    setPlacementIndex(0);
+    scheduleBunchPeakAlert(finalBunch).catch(() => {});
+  };
+
+  const handlePickPlacement = async (env: Environment) => {
+    if (!placementBunch) return;
+    const banana = placementBunch.bananas[placementIndex];
+    if (!banana) return;
+    const updated = await setBananaEnvironment(
+      placementBunch,
+      banana.id,
+      env,
+    );
+    const nextIdx = placementIndex + 1;
+    if (nextIdx >= updated.bananas.length) {
+      finalizePlacement(updated);
+    } else {
+      setPlacementBunch(updated);
+      setPlacementIndex(nextIdx);
+      // Keep the underlying game state in sync as the user goes so the
+      // grid behind the modal reflects their choices.
+      setBunch(updated);
+    }
+  };
+
+  const handleSkipPlacement = () => {
+    if (placementBunch) finalizePlacement(placementBunch);
   };
 
   const handleEnvChange = async (env: Environment) => {
@@ -227,6 +269,13 @@ export default function BananasScreen() {
         onChangeSpeed={setPlantSpeed}
         onCancel={() => setNamingOpen(false)}
         onConfirm={confirmPlant}
+      />
+
+      <PlacementModal
+        bunch={placementBunch}
+        index={placementIndex}
+        onPick={handlePickPlacement}
+        onSkip={handleSkipPlacement}
       />
     </SafeAreaView>
   );
@@ -412,6 +461,92 @@ function NamingModal({
           </View>
         </View>
       </KeyboardAvoidingView>
+    </Modal>
+  );
+}
+
+/**
+ * Walks the user through placing each banana right after planting. Real
+ * bananas ripen at different rates depending on where they live (counter,
+ * fridge, paper bag, etc.), so making the choice up-front beats defaulting
+ * everything to the counter.
+ *
+ * Tap an environment tile = save it and advance. Tap "Keep the rest on the
+ * counter" = bail; any banana not yet placed stays on its planting default.
+ */
+function PlacementModal({
+  bunch,
+  index,
+  onPick,
+  onSkip,
+}: {
+  bunch: Bunch | null;
+  index: number;
+  onPick: (env: Environment) => void;
+  onSkip: () => void;
+}) {
+  if (!bunch) return null;
+  const banana = bunch.bananas[index];
+  if (!banana) return null;
+  const total = bunch.bananas.length;
+  return (
+    <Modal
+      visible
+      transparent
+      animationType="fade"
+      onRequestClose={onSkip}
+    >
+      <View style={styles.modalScrim}>
+        <View style={[styles.placementCard, shadow.card]}>
+          <Text style={styles.placementProgress}>
+            Banana {index + 1} of {total}
+          </Text>
+          <Text style={styles.placementGlyph}>🍌</Text>
+          <Text style={styles.placementName}>{banana.name}</Text>
+          <Text style={styles.placementPrompt}>
+            Where will {banana.name} live?
+          </Text>
+          <View style={styles.envGrid}>
+            {ENVIRONMENT_ORDER.map((id) => {
+              const def = ENVIRONMENTS[id];
+              const selected = banana.environment === id;
+              return (
+                <Pressable
+                  key={id}
+                  onPress={() => onPick(id)}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected }}
+                  accessibilityLabel={`${def.label}. ${def.blurb}`}
+                  style={({ pressed }) => [
+                    styles.envTile,
+                    selected && styles.envTileSelected,
+                    pressed && { opacity: 0.8 },
+                  ]}
+                >
+                  <Text style={styles.envTileGlyph}>{def.glyph}</Text>
+                  <Text style={styles.envTileLabel}>{def.short}</Text>
+                </Pressable>
+              );
+            })}
+          </View>
+          <Text style={styles.envHint}>
+            {ENVIRONMENTS[banana.environment].blurb}
+          </Text>
+          <Pressable
+            onPress={onSkip}
+            accessibilityRole="button"
+            hitSlop={8}
+            style={({ pressed }) => [
+              styles.placementSkip,
+              pressed && { opacity: 0.6 },
+            ]}
+          >
+            <Text style={styles.placementSkipText}>
+              Keep the rest on the counter
+            </Text>
+          </Pressable>
+        </View>
+      </View>
     </Modal>
   );
 }
@@ -672,5 +807,86 @@ const styles = StyleSheet.create({
   speedOptionTextSelected: {
     color: colors.ink,
     fontWeight: '700',
+  },
+
+  placementCard: {
+    backgroundColor: colors.card,
+    borderRadius: radius.xl,
+    padding: space.lg,
+    alignItems: 'center',
+  },
+  placementProgress: {
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 1.1,
+    color: colors.inkSoft,
+  },
+  placementGlyph: {
+    fontSize: 44,
+    marginTop: 6,
+  },
+  placementName: {
+    fontSize: 22,
+    fontWeight: '700',
+    letterSpacing: -0.3,
+    color: colors.ink,
+    marginTop: 2,
+  },
+  placementPrompt: {
+    fontSize: 13,
+    color: colors.inkSoft,
+    marginTop: 4,
+    textAlign: 'center',
+  },
+  envGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    gap: 8,
+    marginTop: 16,
+    width: '100%',
+  },
+  envTile: {
+    flexBasis: '31%',
+    flexGrow: 0,
+    backgroundColor: colors.bg,
+    borderWidth: 1,
+    borderColor: colors.line,
+    borderRadius: radius.md,
+    paddingVertical: 14,
+    paddingHorizontal: 6,
+    alignItems: 'center',
+  },
+  envTileSelected: {
+    backgroundColor: colors.accent,
+    borderColor: colors.accentDeep,
+  },
+  envTileGlyph: {
+    fontSize: 22,
+  },
+  envTileLabel: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: colors.ink,
+    marginTop: 4,
+  },
+  envHint: {
+    fontSize: 12,
+    color: colors.inkSoft,
+    fontStyle: 'italic',
+    marginTop: 12,
+    textAlign: 'center',
+    lineHeight: 16,
+  },
+  placementSkip: {
+    marginTop: 14,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+  },
+  placementSkipText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: colors.inkSoft,
+    textDecorationLine: 'underline',
   },
 });
