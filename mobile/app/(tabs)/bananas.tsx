@@ -38,13 +38,11 @@ import {
   bunchOver,
   formatLifespan,
   bunchAlive,
-  setMusicEnabled,
 } from '../../lib/pet';
 import {
   scheduleBunchPeakAlert,
   cancelPeakAlert,
 } from '../../lib/notifications';
-import { startMusic, pauseMusic } from '../../lib/audio';
 import { colors, radius, space, shadow } from '../../lib/theme';
 
 const ORDER: Stage[] = [1, 2, 3, 4, 5, 6, 7];
@@ -66,7 +64,6 @@ export default function BananasScreen() {
   const [namingOpen, setNamingOpen] = useState(false);
   const [bunchNameInput, setBunchNameInput] = useState('');
   const [plantSpeed, setPlantSpeed] = useState<GameSpeed>(DEFAULT_GAME_SPEED);
-  const [musicOn, setMusicOn] = useState(false);
 
   /** Load on mount, catch up time without rolling random events. */
   useEffect(() => {
@@ -80,8 +77,6 @@ export default function BananasScreen() {
         const firstAlive = ticked.bananas.find((b) => b.alive);
         setSelectedId((firstAlive ?? ticked.bananas[0])?.id ?? null);
       }
-      const prefs = await loadPrefs();
-      setMusicOn(prefs.music_enabled);
     })();
   }, []);
 
@@ -105,43 +100,6 @@ export default function BananasScreen() {
       };
     }, []),
   );
-
-  /**
-   * Music plays only while this tab is focused AND the user has it enabled.
-   * Pause on blur so backgrounding / tab-switching doesn't bleed audio into
-   * the scan or you screens.
-   *
-   * Prefs are re-read on every focus so a toggle made in Settings while
-   * this tab was blurred takes effect when the user returns.
-   */
-  useFocusEffect(
-    useCallback(() => {
-      let alive = true;
-      (async () => {
-        const prefs = await loadPrefs();
-        if (!alive) return;
-        setMusicOn(prefs.music_enabled);
-        if (prefs.music_enabled) {
-          startMusic().catch(() => {});
-        }
-      })();
-      return () => {
-        alive = false;
-        pauseMusic();
-      };
-    }, []),
-  );
-
-  const handleToggleMusic = async () => {
-    const next = !musicOn;
-    setMusicOn(next);
-    await setMusicEnabled(next);
-    if (next) {
-      startMusic().catch(() => {});
-    } else {
-      pauseMusic();
-    }
-  };
 
   const handlePlantPrompt = async () => {
     setBunchNameInput('');
@@ -190,37 +148,9 @@ export default function BananasScreen() {
     <SafeAreaView style={styles.safe} edges={['top']}>
       <ScrollView contentContainerStyle={{ paddingBottom: 60 }}>
         <View style={styles.head}>
-          <View style={styles.headTopRow}>
-            <Text style={styles.title} accessibilityRole="header">
-              Bananas
-            </Text>
-            <Pressable
-              onPress={handleToggleMusic}
-              accessibilityRole="switch"
-              accessibilityState={{ checked: musicOn }}
-              accessibilityLabel={
-                musicOn ? 'Turn music off' : 'Turn music on'
-              }
-              hitSlop={8}
-              style={({ pressed }) => [
-                styles.musicChip,
-                musicOn && styles.musicChipOn,
-                pressed && { opacity: 0.75 },
-              ]}
-            >
-              <Text style={styles.musicChipGlyph}>
-                {musicOn ? '🎵' : '🔇'}
-              </Text>
-              <Text
-                style={[
-                  styles.musicChipLabel,
-                  musicOn && styles.musicChipLabelOn,
-                ]}
-              >
-                {musicOn ? 'Music' : 'Music off'}
-              </Text>
-            </Pressable>
-          </View>
+          <Text style={styles.title} accessibilityRole="header">
+            Bananas
+          </Text>
           <Text style={styles.lede}>
             Get a bunch. Stagger their ripening. Eat them at peak before
             something happens to them. (Something often happens.)
@@ -500,51 +430,18 @@ const styles = StyleSheet.create({
     paddingTop: 12,
     paddingBottom: space.md,
   },
-  headTopRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 6,
-  },
   title: {
     fontSize: 28,
     fontWeight: '700',
     letterSpacing: -0.5,
     color: colors.ink,
+    marginBottom: 6,
   },
   lede: {
     fontSize: 14,
     color: colors.inkSoft,
     lineHeight: 20,
   },
-  musicChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: radius.pill,
-    borderWidth: 1,
-    borderColor: colors.line,
-    backgroundColor: colors.bg,
-  },
-  musicChipOn: {
-    borderColor: colors.accentDeep,
-    backgroundColor: colors.accent,
-  },
-  musicChipGlyph: {
-    fontSize: 14,
-  },
-  musicChipLabel: {
-    fontSize: 12,
-    fontWeight: '700',
-    letterSpacing: 0.3,
-    color: colors.inkSoft,
-  },
-  musicChipLabelOn: {
-    color: colors.ink,
-  },
-
   plantWrap: {
     marginHorizontal: space.md,
     backgroundColor: colors.card,
