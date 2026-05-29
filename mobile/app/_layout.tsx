@@ -26,17 +26,16 @@ export default function RootLayout() {
             headerShown: false,
           }}
         />
-        {/* Rewards is a dev-only modal route. Production builds render
-            it as a hidden screen (no entry point exists in You either). */}
-        {__DEV__ && (
-          <Stack.Screen
-            name="rewards"
-            options={{
-              presentation: 'modal',
-              headerShown: false,
-            }}
-          />
-        )}
+        {/* Rewards modal: entered from the Daily-scan rewards card on
+            the You tab. Inside the screen, demo-only controls (skip-day,
+            reset-all) stay gated by __DEV__. */}
+        <Stack.Screen
+          name="rewards"
+          options={{
+            presentation: 'modal',
+            headerShown: false,
+          }}
+        />
       </Stack>
     </SafeAreaProvider>
   );

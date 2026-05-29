@@ -8,7 +8,8 @@ import {
   Linking,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
+import { useFocusEffect, useRouter } from 'expo-router';
 
 import { colors, radius, space } from '../../lib/theme';
 import {
@@ -19,8 +20,11 @@ import {
   loadPrefs,
   setDefaultGameSpeed,
 } from '../../lib/pet';
-import { VarietyCard } from '../../components/VarietyCard';
-import { VARIETIES } from '../../lib/drops';
+import { loadCollection, totalUnlockable } from '../../lib/drops';
+import {
+  evaluateClaim,
+  loadStreak,
+} from '../../lib/streak';
 
 /**
  * Stub for v1. Real surfaces this will hold:
@@ -50,10 +54,15 @@ function AboutLink({ label, url }: { label: string; url: string }) {
 }
 
 export default function YouScreen() {
+  const router = useRouter();
   const [optIn, setOptIn] = useState(false);
   const [gameSpeed, setGameSpeed] =
     useState<GameSpeed>(DEFAULT_GAME_SPEED);
+  const [streakCurrent, setStreakCurrent] = useState(0);
+  const [canClaim, setCanClaim] = useState(false);
+  const [collectionCount, setCollectionCount] = useState(0);
 
+  // Load static prefs once on mount.
   useEffect(() => {
     (async () => {
       const prefs = await loadPrefs();
@@ -61,9 +70,35 @@ export default function YouScreen() {
     })();
   }, []);
 
+  // Refresh streak / collection on every focus so coming back from the
+  // rewards modal shows the new state without a manual reload.
+  useFocusEffect(
+    useCallback(() => {
+      let alive = true;
+      (async () => {
+        const [streak, gate, collection] = await Promise.all([
+          loadStreak(),
+          evaluateClaim(),
+          loadCollection(),
+        ]);
+        if (!alive) return;
+        setStreakCurrent(streak.current);
+        setCanClaim(gate.canClaim);
+        setCollectionCount(collection.length);
+      })();
+      return () => {
+        alive = false;
+      };
+    }, []),
+  );
+
   const handleSelectSpeed = async (speed: GameSpeed) => {
     setGameSpeed(speed);
     await setDefaultGameSpeed(speed);
+  };
+
+  const openRewards = () => {
+    router.push('/rewards');
   };
 
   const currentSpeedDef = GAME_SPEEDS[gameSpeed];
@@ -122,71 +157,46 @@ export default function YouScreen() {
           </View>
         </View>
 
-        {/*
-          Sneak-peek at v1.1's daily-scan rewards. Always visible, but
-          visually recedes from the live settings cards (bg fill + dashed
-          border) so it reads as "preview, not interactive."
-        */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>
-            COMING SOON · DAILY-SCAN REWARDS
-          </Text>
-          <View
-            style={styles.previewCard}
-            accessible={true}
-            accessibilityRole="text"
-            accessibilityLabel="Coming soon: daily scan rewards, drops, and varieties. Preview only, not interactive in this build."
+          <Text style={styles.sectionTitle}>DAILY-SCAN REWARDS</Text>
+          <Pressable
+            onPress={openRewards}
+            accessibilityRole="button"
+            accessibilityLabel={
+              canClaim
+                ? 'Open today\'s crate'
+                : `Open rewards. Current streak ${streakCurrent} days.`
+            }
+            style={({ pressed }) => [
+              styles.rewardsCard,
+              pressed && { opacity: 0.92 },
+            ]}
           >
-            <View style={styles.previewStreakChip}>
-              <Text style={styles.previewStreakGlyph}>🔥</Text>
-              <Text style={styles.previewStreakText}>Streak</Text>
-              <View style={styles.previewTagPill}>
-                <Text style={styles.previewTagText}>PREVIEW</Text>
-              </View>
-            </View>
-
-            <Text style={styles.previewCaption}>
-              One scan a day unlocks a crate. Keep the streak alive. Build the
-              collection.
-            </Text>
-
-            <View style={styles.previewCrateRow}>
-              <View style={styles.previewCrateWrap}>
-                <Text style={styles.previewCrateGlyph}>📦</Text>
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.previewCrateTitle}>Today's crate</Text>
-                <Text style={styles.previewCrateSub}>
-                  Drops when v1.1 ships.
+            <View style={styles.rewardsTopRow}>
+              <View style={styles.rewardsStreakChip}>
+                <Text style={styles.rewardsStreakGlyph}>🔥</Text>
+                <Text style={styles.rewardsStreakText}>
+                  {streakCurrent > 0
+                    ? `${streakCurrent}-day streak`
+                    : 'Start a streak'}
                 </Text>
               </View>
-            </View>
-
-            <View
-              pointerEvents="none"
-              style={styles.previewVarietyRow}
-              accessibilityElementsHidden={true}
-              importantForAccessibility="no-hide-descendants"
-            >
-              {['baboon_delight', 'yellow_scorcher', 'lunar_banana'].map(
-                (id) => {
-                  const variety = VARIETIES.find((v) => v.id === id);
-                  if (!variety) return null;
-                  return (
-                    <VarietyCard
-                      key={id}
-                      variety={variety}
-                      unlocked={false}
-                    />
-                  );
-                },
+              {canClaim && (
+                <View style={styles.rewardsClaimPill}>
+                  <Text style={styles.rewardsClaimText}>📦 OPEN TODAY</Text>
+                </View>
               )}
             </View>
-
-            <Text style={styles.previewFootnote}>
-              Preview only. Nothing's wired up yet.
+            <Text style={styles.rewardsCaption}>
+              One crate a day. Build the collection, keep the streak alive.
             </Text>
-          </View>
+            <View style={styles.rewardsBottomRow}>
+              <Text style={styles.rewardsCollection}>
+                Collection {collectionCount} / {totalUnlockable()}
+              </Text>
+              <Text style={styles.rewardsCta}>Open ›</Text>
+            </View>
+          </Pressable>
         </View>
 
         <View style={styles.section}>
@@ -311,90 +321,71 @@ const styles = StyleSheet.create({
     borderColor: colors.line,
     padding: space.md,
   },
-  previewCard: {
-    backgroundColor: colors.bg,
+  rewardsCard: {
     marginHorizontal: space.md,
+    backgroundColor: colors.yellowSoft,
     borderRadius: radius.lg,
     borderWidth: 1,
     borderColor: colors.line,
-    borderStyle: 'dashed',
     padding: space.md,
   },
-  previewStreakChip: {
+  rewardsTopRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
     gap: 8,
-    alignSelf: 'flex-start',
-    backgroundColor: colors.line,
+  },
+  rewardsStreakChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#FFFFFFCC',
     paddingVertical: 6,
     paddingHorizontal: 12,
     borderRadius: radius.pill,
   },
-  previewStreakGlyph: {
+  rewardsStreakGlyph: {
     fontSize: 14,
   },
-  previewStreakText: {
-    fontSize: 12,
+  rewardsStreakText: {
+    fontSize: 12.5,
     fontWeight: '700',
-    color: colors.inkSoft,
+    color: colors.ink,
   },
-  previewTagPill: {
-    backgroundColor: colors.bg,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
+  rewardsClaimPill: {
+    backgroundColor: colors.accent,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
     borderRadius: radius.pill,
   },
-  previewTagText: {
-    fontSize: 9,
-    fontWeight: '700',
+  rewardsClaimText: {
+    fontSize: 10,
+    fontWeight: '800',
     letterSpacing: 0.8,
-    color: colors.inkSoft,
+    color: colors.ink,
   },
-  previewCaption: {
-    fontSize: 12.5,
-    color: colors.inkSoft,
-    lineHeight: 17,
+  rewardsCaption: {
+    fontSize: 13,
+    color: colors.ink,
+    lineHeight: 18,
     marginTop: 10,
   },
-  previewCrateRow: {
+  rewardsBottomRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
-    marginTop: 14,
+    justifyContent: 'space-between',
+    marginTop: 12,
   },
-  previewCrateWrap: {
-    width: 44,
-    height: 44,
-    borderRadius: radius.md,
-    backgroundColor: colors.line,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  previewCrateGlyph: {
-    fontSize: 22,
-    opacity: 0.55,
-  },
-  previewCrateTitle: {
-    fontSize: 14,
+  rewardsCollection: {
+    fontSize: 12,
     fontWeight: '700',
     color: colors.inkSoft,
+    fontVariant: ['tabular-nums'],
   },
-  previewCrateSub: {
-    fontSize: 12,
-    color: colors.inkSoft,
-    marginTop: 2,
-  },
-  previewVarietyRow: {
-    flexDirection: 'row',
-    gap: 8,
-    marginTop: 14,
-    opacity: 0.55,
-  },
-  previewFootnote: {
-    fontSize: 11,
-    color: colors.inkSoft,
-    fontStyle: 'italic',
-    marginTop: 12,
+  rewardsCta: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: colors.brown,
   },
   toggleRow: {
     flexDirection: 'row',

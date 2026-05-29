@@ -284,41 +284,45 @@ export default function RewardsScreen() {
           </>
         )}
 
-        {/* Demo controls */}
-        <Text style={styles.sectionTitle}>🙊 DEMO CONTROLS</Text>
-        <View style={[styles.demoCard, { borderColor: colors.line }]}>
-          <Pressable
-            onPress={handleAdvanceDay}
-            accessibilityRole="button"
-            accessibilityLabel="Advance to tomorrow"
-            style={({ pressed }) => [
-              styles.demoBtn,
-              pressed && { opacity: 0.6 },
-            ]}
-          >
-            <Text style={styles.demoBtnText}>Skip to tomorrow ⏭️</Text>
-            <Text style={styles.demoBtnSub}>
-              Lets you re-open today's crate. Streak math still applies.
-            </Text>
-          </Pressable>
-          <View style={styles.demoDivider} />
-          <Pressable
-            onPress={handleResetAll}
-            accessibilityRole="button"
-            accessibilityLabel="Reset all reward state"
-            style={({ pressed }) => [
-              styles.demoBtn,
-              pressed && { opacity: 0.6 },
-            ]}
-          >
-            <Text style={[styles.demoBtnText, { color: colors.brown }]}>
-              Reset everything 🗑️
-            </Text>
-            <Text style={styles.demoBtnSub}>
-              Clears streak, collection, history, and the day offset.
-            </Text>
-          </Pressable>
-        </View>
+        {/* Demo controls — testers don't see these in production builds. */}
+        {__DEV__ && (
+          <>
+            <Text style={styles.sectionTitle}>🙊 DEMO CONTROLS</Text>
+            <View style={[styles.demoCard, { borderColor: colors.line }]}>
+              <Pressable
+                onPress={handleAdvanceDay}
+                accessibilityRole="button"
+                accessibilityLabel="Advance to tomorrow"
+                style={({ pressed }) => [
+                  styles.demoBtn,
+                  pressed && { opacity: 0.6 },
+                ]}
+              >
+                <Text style={styles.demoBtnText}>Skip to tomorrow ⏭️</Text>
+                <Text style={styles.demoBtnSub}>
+                  Lets you re-open today's crate. Streak math still applies.
+                </Text>
+              </Pressable>
+              <View style={styles.demoDivider} />
+              <Pressable
+                onPress={handleResetAll}
+                accessibilityRole="button"
+                accessibilityLabel="Reset all reward state"
+                style={({ pressed }) => [
+                  styles.demoBtn,
+                  pressed && { opacity: 0.6 },
+                ]}
+              >
+                <Text style={[styles.demoBtnText, { color: colors.brown }]}>
+                  Reset everything 🗑️
+                </Text>
+                <Text style={styles.demoBtnSub}>
+                  Clears streak, collection, history, and the day offset.
+                </Text>
+              </Pressable>
+            </View>
+          </>
+        )}
       </ScrollView>
     </SafeAreaView>
   );
