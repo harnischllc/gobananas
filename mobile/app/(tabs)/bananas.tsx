@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ScrollView,
   View,
@@ -66,10 +66,15 @@ export default function BananasScreen() {
   const [namingOpen, setNamingOpen] = useState(false);
   const [bunchNameInput, setBunchNameInput] = useState('');
   const [plantSpeed, setPlantSpeed] = useState<GameSpeed>(DEFAULT_GAME_SPEED);
-  // Placement walkthrough: when non-null, modal walks the user through
-  // banana N at index `placementIndex`, asking where each one should live.
+  // Placement walkthrough: when non-null, the modal is open.
+  // `placementMode` flips from per-banana picking to a final review screen.
   const [placementBunch, setPlacementBunch] = useState<Bunch | null>(null);
   const [placementIndex, setPlacementIndex] = useState(0);
+  const [placementMode, setPlacementMode] = useState<'pick' | 'review'>('pick');
+  // The env the user just tapped but hasn't been auto-committed yet. Lets
+  // the modal show the highlight + blurb for a beat before advancing.
+  const [pendingEnv, setPendingEnv] = useState<Environment | null>(null);
+  const pendingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   /** Load on mount, catch up time without rolling random events. */
   useEffect(() => {
@@ -114,6 +119,23 @@ export default function BananasScreen() {
     setNamingOpen(true);
   };
 
+  // Clear an in-flight pending-env timer so we don't fire a stale advance
+  // after a Back, Skip, or finalize.
+  const cancelPendingPlacement = () => {
+    if (pendingTimerRef.current) {
+      clearTimeout(pendingTimerRef.current);
+      pendingTimerRef.current = null;
+    }
+    setPendingEnv(null);
+  };
+
+  // Make sure no pending timer outlives the screen.
+  useEffect(() => {
+    return () => {
+      if (pendingTimerRef.current) clearTimeout(pendingTimerRef.current);
+    };
+  }, []);
+
   const confirmPlant = async () => {
     const next = await plantBunch(bunchNameInput, plantSpeed);
     setBunch(next);
@@ -122,36 +144,66 @@ export default function BananasScreen() {
     // Hand off to the placement walkthrough. Peak-alert scheduling is
     // deferred until placement finishes (or is skipped) so it uses the
     // final environment mix, not the all-counter default.
+    cancelPendingPlacement();
     setPlacementBunch(next);
     setPlacementIndex(0);
+    setPlacementMode('pick');
   };
 
   const finalizePlacement = (finalBunch: Bunch) => {
+    cancelPendingPlacement();
     setBunch(finalBunch);
     setPlacementBunch(null);
     setPlacementIndex(0);
+    setPlacementMode('pick');
     scheduleBunchPeakAlert(finalBunch).catch(() => {});
   };
 
-  const handlePickPlacement = async (env: Environment) => {
+  // Tap an env tile: stage the choice, hold the highlight + blurb for a
+  // beat, then commit + advance to the next banana (or to the review
+  // screen if this was the last one).
+  const handlePickPlacement = (env: Environment) => {
     if (!placementBunch) return;
-    const banana = placementBunch.bananas[placementIndex];
-    if (!banana) return;
-    const updated = await setBananaEnvironment(
-      placementBunch,
-      banana.id,
-      env,
-    );
-    const nextIdx = placementIndex + 1;
-    if (nextIdx >= updated.bananas.length) {
-      finalizePlacement(updated);
-    } else {
-      setPlacementBunch(updated);
-      setPlacementIndex(nextIdx);
-      // Keep the underlying game state in sync as the user goes so the
-      // grid behind the modal reflects their choices.
+    if (pendingTimerRef.current) clearTimeout(pendingTimerRef.current);
+    setPendingEnv(env);
+    const snapshotIndex = placementIndex;
+    pendingTimerRef.current = setTimeout(async () => {
+      pendingTimerRef.current = null;
+      const banana = placementBunch.bananas[snapshotIndex];
+      if (!banana) return;
+      const updated = await setBananaEnvironment(
+        placementBunch,
+        banana.id,
+        env,
+      );
+      setPendingEnv(null);
       setBunch(updated);
-    }
+      const nextIdx = snapshotIndex + 1;
+      if (nextIdx >= updated.bananas.length) {
+        setPlacementBunch(updated);
+        setPlacementIndex(snapshotIndex);
+        setPlacementMode('review');
+      } else {
+        setPlacementBunch(updated);
+        setPlacementIndex(nextIdx);
+      }
+    }, 650);
+  };
+
+  const handleBackPlacement = () => {
+    if (!placementBunch) return;
+    cancelPendingPlacement();
+    if (placementIndex > 0) setPlacementIndex(placementIndex - 1);
+  };
+
+  const handleEditFromReview = (idx: number) => {
+    cancelPendingPlacement();
+    setPlacementIndex(idx);
+    setPlacementMode('pick');
+  };
+
+  const handleConfirmReview = () => {
+    if (placementBunch) finalizePlacement(placementBunch);
   };
 
   const handleSkipPlacement = () => {
@@ -274,7 +326,12 @@ export default function BananasScreen() {
       <PlacementModal
         bunch={placementBunch}
         index={placementIndex}
+        mode={placementMode}
+        pendingEnv={pendingEnv}
         onPick={handlePickPlacement}
+        onBack={handleBackPlacement}
+        onEdit={handleEditFromReview}
+        onConfirm={handleConfirmReview}
         onSkip={handleSkipPlacement}
       />
     </SafeAreaView>
@@ -471,24 +528,102 @@ function NamingModal({
  * fridge, paper bag, etc.), so making the choice up-front beats defaulting
  * everything to the counter.
  *
- * Tap an environment tile = save it and advance. Tap "Keep the rest on the
- * counter" = bail; any banana not yet placed stays on its planting default.
+ * Two modes:
+ *   pick   — one banana at a time. Tap an env tile, the tile + blurb
+ *            highlight, and after a beat the modal auto-advances. Back
+ *            returns to the previous banana. Skip bails any remaining
+ *            bananas to their planting default.
+ *   review — final confirmation. Lists every banana with the env it's
+ *            ended up in; tapping any row jumps back into pick mode at
+ *            that index for one more pass.
  */
 function PlacementModal({
   bunch,
   index,
+  mode,
+  pendingEnv,
   onPick,
+  onBack,
+  onEdit,
+  onConfirm,
   onSkip,
 }: {
   bunch: Bunch | null;
   index: number;
+  mode: 'pick' | 'review';
+  pendingEnv: Environment | null;
   onPick: (env: Environment) => void;
+  onBack: () => void;
+  onEdit: (idx: number) => void;
+  onConfirm: () => void;
   onSkip: () => void;
 }) {
   if (!bunch) return null;
+  const total = bunch.bananas.length;
+
+  if (mode === 'review') {
+    return (
+      <Modal
+        visible
+        transparent
+        animationType="fade"
+        onRequestClose={onSkip}
+      >
+        <View style={styles.modalScrim}>
+          <View style={[styles.placementCard, shadow.card]}>
+            <Text style={styles.placementProgress}>All set?</Text>
+            <Text style={styles.placementName}>Review the placements</Text>
+            <Text style={styles.placementPrompt}>
+              Tap any row to change a banana's spot. Tap Plant to lock it in.
+            </Text>
+            <View style={styles.reviewList}>
+              {bunch.bananas.map((b, i) => {
+                const env = ENVIRONMENTS[b.environment];
+                return (
+                  <Pressable
+                    key={b.id}
+                    onPress={() => onEdit(i)}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Change ${b.name}'s spot. Currently ${env.label}.`}
+                    style={({ pressed }) => [
+                      styles.reviewRow,
+                      pressed && { opacity: 0.7 },
+                    ]}
+                  >
+                    <Text style={styles.reviewRowName}>{b.name}</Text>
+                    <View style={styles.reviewRowEnv}>
+                      <Text style={styles.reviewRowGlyph}>{env.glyph}</Text>
+                      <Text style={styles.reviewRowEnvLabel}>
+                        {env.short}
+                      </Text>
+                    </View>
+                  </Pressable>
+                );
+              })}
+            </View>
+            <Pressable
+              onPress={onConfirm}
+              accessibilityRole="button"
+              accessibilityLabel="Plant the bunch"
+              style={({ pressed }) => [
+                styles.reviewConfirm,
+                pressed && { opacity: 0.85 },
+              ]}
+            >
+              <Text style={styles.reviewConfirmText}>🌱 Plant for real</Text>
+            </Pressable>
+          </View>
+        </View>
+      </Modal>
+    );
+  }
+
   const banana = bunch.bananas[index];
   if (!banana) return null;
-  const total = bunch.bananas.length;
+  // The highlight reflects the staged choice if there is one, otherwise
+  // whatever's been committed (defaults to counter on a fresh banana).
+  const highlightEnv: Environment = pendingEnv ?? banana.environment;
+  const showBackBtn = index > 0;
   return (
     <Modal
       visible
@@ -498,9 +633,28 @@ function PlacementModal({
     >
       <View style={styles.modalScrim}>
         <View style={[styles.placementCard, shadow.card]}>
-          <Text style={styles.placementProgress}>
-            Banana {index + 1} of {total}
-          </Text>
+          <View style={styles.placementTopRow}>
+            {showBackBtn ? (
+              <Pressable
+                onPress={onBack}
+                accessibilityRole="button"
+                accessibilityLabel="Back to previous banana"
+                hitSlop={10}
+                style={({ pressed }) => [
+                  styles.placementBackBtn,
+                  pressed && { opacity: 0.6 },
+                ]}
+              >
+                <Text style={styles.placementBackText}>‹ Back</Text>
+              </Pressable>
+            ) : (
+              <View style={styles.placementBackBtn} />
+            )}
+            <Text style={styles.placementProgress}>
+              Banana {index + 1} of {total}
+            </Text>
+            <View style={styles.placementBackBtn} />
+          </View>
           <Text style={styles.placementGlyph}>🍌</Text>
           <Text style={styles.placementName}>{banana.name}</Text>
           <Text style={styles.placementPrompt}>
@@ -509,7 +663,7 @@ function PlacementModal({
           <View style={styles.envGrid}>
             {ENVIRONMENT_ORDER.map((id) => {
               const def = ENVIRONMENTS[id];
-              const selected = banana.environment === id;
+              const selected = highlightEnv === id;
               return (
                 <Pressable
                   key={id}
@@ -530,7 +684,7 @@ function PlacementModal({
             })}
           </View>
           <Text style={styles.envHint}>
-            {ENVIRONMENTS[banana.environment].blurb}
+            {ENVIRONMENTS[highlightEnv].blurb}
           </Text>
           <Pressable
             onPress={onSkip}
@@ -888,5 +1042,67 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: colors.inkSoft,
     textDecorationLine: 'underline',
+  },
+  placementTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    alignSelf: 'stretch',
+    marginBottom: 4,
+  },
+  placementBackBtn: {
+    minWidth: 64,
+    paddingVertical: 4,
+  },
+  placementBackText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: colors.brown,
+  },
+  reviewList: {
+    alignSelf: 'stretch',
+    marginTop: 14,
+    borderTopWidth: 1,
+    borderTopColor: colors.line,
+  },
+  reviewRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 12,
+    paddingHorizontal: 4,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.line,
+  },
+  reviewRowName: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: colors.ink,
+  },
+  reviewRowEnv: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  reviewRowGlyph: {
+    fontSize: 16,
+  },
+  reviewRowEnvLabel: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: colors.inkSoft,
+  },
+  reviewConfirm: {
+    marginTop: 16,
+    alignSelf: 'stretch',
+    backgroundColor: colors.accent,
+    borderRadius: radius.pill,
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  reviewConfirmText: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: colors.ink,
   },
 });
