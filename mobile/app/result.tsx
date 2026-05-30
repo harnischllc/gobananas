@@ -68,7 +68,7 @@ export default function ResultScreen() {
         `If you can, attach a screenshot of the result screen so the diagnostic data goes along with this.\n`,
     );
     Linking.openURL(
-      `mailto:info@harnischllc.com?subject=${subject}&body=${body}`,
+      `mailto:feedback@bananascanner.com?subject=${subject}&body=${body}`,
     );
   };
 
