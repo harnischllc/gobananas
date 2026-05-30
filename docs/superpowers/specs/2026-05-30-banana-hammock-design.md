@@ -1,7 +1,7 @@
 # Banana Hammock + Monkey Raid, v1 design
 
 Date: 2026-05-30
-Status: draft, awaiting Eric review
+Status: locked 2026-05-30, ready for implementation planning
 
 ## Summary
 
@@ -33,12 +33,12 @@ The game already models a "bunch" of individual bananas with per-banana ripeness
 
 The strategy: predict the monkey's target (your best banana) and tuck it in. Protect the wrong banana and you lose your prize while the hammock sits unused. That single tense read, repeated daily, is the addiction.
 
-## Open decisions (need your call)
+## Decisions (locked 2026-05-30, Eric delegated the calls: "make it fun, not confusing, funny, cool")
 
-1. **Hammock sourcing.** There is no spendable currency in the app today; the economy is the crate / variety-collection system in `drops.ts`. Recommendation: hammocks drop from the daily crates at a low rate (scarcity comes free), and the coin shop you mentioned moves to v2. Alternative is building a minimal coin balance + shop now, which is a much bigger v1.
-2. **Existing random events.** Recommendation: retire the foreground `monkey` event (the raid replaces it) and the `bird` event (your "no more birds"). Keep `dropped`, `mush`, and the `avocado_jealous` gag. Open question: does the `roommate` theft event also go, or stay as non-monkey flavor?
-3. **When a hammock blocks.** Recommendation: the monkey leaves empty-handed that night (a clean, satisfying save). Alternative: the monkey still grabs the next-best unprotected banana (more sting, less reward for defending).
-4. **Numbers to tune.** Raid chance per day, hammock drop rate, and the rule that at most one banana is lost per raid.
+1. **Sourcing.** Hammocks drop from the daily crates at a low rate. No new currency in v1; the coin shop moves to v2. (Scarcity comes free from the drop rate, which is the addictive lever.)
+2. **Existing events.** Retire the foreground `monkey` event (the overnight raid replaces it) and the `bird` event. Keep `roommate`, `dropped`, `mush`, and `avocado_jealous` as non-monkey flavor, so the monkey stays the single creature you actually defend against. Clean threat model: live mishaps happen while you play, the monkey raids while you are away.
+3. **Block behavior.** A blocked monkey leaves empty-handed that night, a clean and satisfying save, with a funny reveal line (it tried, the banana was snug in the hammock, it left in a huff and grabbed a loose peel instead). No next-best grab.
+4. **Numbers (first-pass, to playtest).** Raid chance ~35% on a new day with a live banana; ~20% chance a daily crate also yields a hammock; at most one banana lost per raid.
 
 ## Out of scope for v1
 
