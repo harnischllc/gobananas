@@ -18,6 +18,7 @@
  */
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { grantHammock } from './hammock';
 
 const COLLECTION_KEY = 'gobananas/drops/collection/v1';
 const HISTORY_KEY = 'gobananas/drops/history/v1';
@@ -296,6 +297,8 @@ export interface DropResult {
   firstTime: boolean;
   /** Peels-flavor text varies; this is the chosen one for this drop. */
   peelsFlavor?: string;
+  /** True if this crate also yielded a Banana Hammock. */
+  hammockAwarded?: boolean;
   iso: string;
 }
 
@@ -319,6 +322,9 @@ function rollRarity(weights: Weights): Rarity {
  */
 export async function openCrate(): Promise<DropResult> {
   const rarity = rollRarity(ACTIVE_WEIGHTS);
+  // ~20% of crates also drop a Banana Hammock (scarce by design).
+  const hammockAwarded = Math.random() < 0.2;
+  if (hammockAwarded) await grantHammock(1);
 
   if (rarity === 'peels') {
     const flavor =
@@ -327,6 +333,7 @@ export async function openCrate(): Promise<DropResult> {
       variety: { ...PEELS_VARIETY, flavor },
       firstTime: false,
       peelsFlavor: flavor,
+      hammockAwarded,
       iso: new Date().toISOString(),
     };
     await pushHistory(result);
@@ -350,6 +357,7 @@ export async function openCrate(): Promise<DropResult> {
   const result: DropResult = {
     variety,
     firstTime,
+    hammockAwarded,
     iso: new Date().toISOString(),
   };
   await pushHistory(result);

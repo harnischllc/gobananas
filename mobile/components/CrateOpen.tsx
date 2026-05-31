@@ -189,7 +189,7 @@ export function CrateOpen({ onComplete, onOpen }: Props) {
 /* ------------------------------------------------------------------ */
 
 function DropCard({ drop }: { drop: DropResult }) {
-  const { variety, firstTime } = drop;
+  const { variety, firstTime, hammockAwarded } = drop;
   const rarityColor = RARITY_COLOR[variety.rarity];
   const isPeels = variety.rarity === 'peels';
 
@@ -240,8 +240,17 @@ function DropCard({ drop }: { drop: DropResult }) {
         </View>
       )}
 
-      {isPeels && (
+      {isPeels && !hammockAwarded && (
         <Text style={styles.peelsNote}>(no rewards earned. just vibes.)</Text>
+      )}
+
+      {hammockAwarded && (
+        <View style={styles.hammockBadge}>
+          <Text style={styles.hammockBadgeText}>🪢 +1 Banana Hammock</Text>
+          <Text style={styles.hammockBadgeSub}>
+            Tuck a banana in on the Bananas tab to foil the monkey.
+          </Text>
+        </View>
       )}
     </View>
   );
@@ -451,6 +460,26 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: colors.inkSoft,
     fontStyle: 'italic',
+  },
+  hammockBadge: {
+    marginTop: 12,
+    backgroundColor: colors.greenSoft,
+    borderRadius: radius.md,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    width: '100%',
+    alignItems: 'center',
+  },
+  hammockBadgeText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: colors.ink,
+  },
+  hammockBadgeSub: {
+    fontSize: 11,
+    color: colors.inkSoft,
+    marginTop: 2,
+    textAlign: 'center',
   },
 
   continueBtn: {
