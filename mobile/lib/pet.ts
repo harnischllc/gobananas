@@ -240,6 +240,8 @@ export interface Banana {
   environment: Environment;
   alive: boolean;
   end_reason?: EndReason;
+  /** True while this banana is tucked into a hammock (raid-proof). */
+  protected?: boolean;
 }
 
 export interface Bunch {
@@ -502,24 +504,12 @@ interface RandomEvent {
 
 const RANDOM_EVENTS: RandomEvent[] = [
   {
-    reason: 'monkey',
-    detail: (banana) => `🐒 A monkey took ${banana}. No recourse.`,
-    glyph: '🐒',
-    ends: true,
-  },
-  {
     reason: 'roommate',
     detail: (banana) =>
       `Your roommate ate ${banana}. Said they'd buy more. They will not.`,
     glyph: '👻',
     ends: true,
     minRipeness: 36, // Roommate doesn't want a green one.
-  },
-  {
-    reason: 'bird',
-    detail: (banana) => `A bird flew off with ${banana}. Window was open.`,
-    glyph: '🐦',
-    ends: true,
   },
   {
     reason: 'dropped',
@@ -602,6 +592,30 @@ export async function setBananaEnvironment(
       },
     ],
   };
+  await saveBunch(next);
+  return next;
+}
+
+/**
+ * Tuck a banana into the hammock (or take it out). Single slot: at most one
+ * banana is protected at a time. Only an alive banana can be tucked. The
+ * hammock inventory itself lives in lib/hammock.ts; the caller checks that a
+ * hammock is available before tucking.
+ */
+export async function setBananaProtected(
+  bunch: Bunch,
+  bananaId: string,
+  value: boolean,
+): Promise<Bunch> {
+  const ticked = tickBunch(bunch, false);
+  const updated = ticked.bananas.map((b) => {
+    if (value) {
+      // Single slot: the targeted alive banana is protected, all others cleared.
+      return { ...b, protected: b.id === bananaId && b.alive };
+    }
+    return b.id === bananaId ? { ...b, protected: false } : b;
+  });
+  const next: Bunch = { ...ticked, bananas: updated };
   await saveBunch(next);
   return next;
 }
