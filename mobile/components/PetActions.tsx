@@ -22,12 +22,16 @@ interface Props {
   bunchName: string;
   onChangeEnvironment: (env: Environment) => void;
   onEat: () => void;
+  hammockCount: number;
+  onToggleHammock: () => void;
 }
 
 export function PetActions({
   banana,
   onChangeEnvironment,
   onEat,
+  hammockCount,
+  onToggleHammock,
 }: Props) {
   const stage = ripenessToStage(banana.ripeness);
   const def = STAGES[stage];
@@ -117,6 +121,33 @@ export function PetActions({
       >
         <Text style={styles.eatGlyph}>🤤</Text>
         <Text style={styles.eatText}>{ripenessLabel}</Text>
+      </Pressable>
+
+      <Pressable
+        onPress={onToggleHammock}
+        disabled={!banana.protected && hammockCount < 1}
+        accessibilityRole="button"
+        accessibilityLabel={
+          banana.protected
+            ? `Take ${banana.name} out of the hammock`
+            : hammockCount < 1
+              ? 'No hammocks. Open a crate to find one.'
+              : `Tuck ${banana.name} into a hammock`
+        }
+        style={({ pressed }) => [
+          styles.hammockBtn,
+          banana.protected && styles.hammockBtnActive,
+          !banana.protected && hammockCount < 1 && styles.hammockBtnDisabled,
+          pressed && { opacity: 0.85 },
+        ]}
+      >
+        <Text style={styles.hammockBtnText}>
+          {banana.protected
+            ? '🪢 Take out of hammock'
+            : hammockCount < 1
+              ? '🪢 No hammocks, open a crate'
+              : '🪢 Tuck into hammock'}
+        </Text>
       </Pressable>
     </View>
   );
@@ -220,5 +251,29 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 15,
     fontWeight: '600',
+  },
+  hammockBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.yellowSoft,
+    borderWidth: 1,
+    borderColor: colors.accent,
+    paddingVertical: 12,
+    borderRadius: radius.pill,
+    marginTop: 10,
+  },
+  hammockBtnActive: {
+    backgroundColor: colors.accent,
+  },
+  hammockBtnDisabled: {
+    backgroundColor: colors.card,
+    borderColor: colors.line,
+    opacity: 0.7,
+  },
+  hammockBtnText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: colors.ink,
   },
 });

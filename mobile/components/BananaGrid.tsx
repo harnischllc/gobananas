@@ -49,6 +49,7 @@ function Tile({
   const env = ENVIRONMENTS[banana.environment];
   const ripenessPct = Math.round(banana.ripeness);
   const dead = !banana.alive;
+  const tucked = !!banana.protected && banana.alive;
 
   const accessibilityLabel = dead
     ? `${banana.name}, gone (${banana.end_reason ?? 'ended'})`
@@ -68,6 +69,7 @@ function Tile({
         dead && styles.deadTile,
       ]}
     >
+      {tucked && <Text style={styles.hammockBadge}>🪢</Text>}
       <Text style={[styles.glyph, dead && styles.deadGlyph]}>🍌</Text>
       <Text
         style={[styles.name, dead && styles.deadText]}
@@ -152,5 +154,11 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     letterSpacing: 0.6,
     fontWeight: '700',
+  },
+  hammockBadge: {
+    position: 'absolute',
+    top: 4,
+    right: 6,
+    fontSize: 14,
   },
 });
