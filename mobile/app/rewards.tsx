@@ -38,6 +38,7 @@ import {
   clearStreak,
   effectiveToday,
 } from '../lib/streak';
+import { clearHammock } from '../lib/hammock';
 import { colors, radius, space, shadow } from '../lib/theme';
 
 /**
@@ -114,6 +115,7 @@ export default function RewardsScreen() {
               clearStreak(),
               clearCollection(),
               demoResetCalendar(),
+              clearHammock(),
             ]);
             await refresh();
           },

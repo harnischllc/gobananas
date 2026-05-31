@@ -68,7 +68,9 @@ function pickMostValuable(alive: Banana[]): Banana {
   });
 }
 
-function raidEvent(outcome: RaidOutcome): BunchEvent {
+function raidEvent(
+  outcome: { kind: 'blocked' | 'stolen'; bananaName: string },
+): BunchEvent {
   const iso = new Date().toISOString();
   if (outcome.kind === 'blocked') {
     return {
@@ -78,15 +80,12 @@ function raidEvent(outcome: RaidOutcome): BunchEvent {
       glyph: '🪢',
     };
   }
-  if (outcome.kind === 'stolen') {
-    return {
-      iso,
-      type: 'event',
-      detail: `🐒 A monkey raided overnight and made off with ${outcome.bananaName}. No hammock, no mercy.`,
-      glyph: '🐒',
-    };
-  }
-  return { iso, type: 'event', detail: 'A quiet night. No monkeys.', glyph: '🌙' };
+  return {
+    iso,
+    type: 'event',
+    detail: `🐒 A monkey raided overnight and made off with ${outcome.bananaName}. No hammock, no mercy.`,
+    glyph: '🐒',
+  };
 }
 
 /**

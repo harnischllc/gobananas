@@ -87,52 +87,68 @@ export default function BananasScreen() {
   const [pendingEnv, setPendingEnv] = useState<Environment | null>(null);
   const pendingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  /** Load on mount, catch up time without rolling random events. */
-  useEffect(() => {
-    (async () => {
-      const stored = await loadBunch();
-      if (stored) {
-        const ticked = tickBunch(stored, false);
-        if (ticked !== stored) await persistBunch(ticked);
-        setBunch(ticked);
-        // Default selection: first alive banana, else first one.
-        const firstAlive = ticked.bananas.find((b) => b.alive);
-        setSelectedId((firstAlive ?? ticked.bananas[0])?.id ?? null);
-      }
-    })();
-  }, []);
-
-  /** Tick every 4 seconds while focused, with random events on. */
+  /**
+   * On focus (which also fires on first mount): load the bunch, catch up
+   * ripeness without rolling random events, resolve at most one overnight
+   * monkey raid per effective day, then start the 4s foreground ticker.
+   * This is the ONLY load->persist chain for the bunch on entry, so there is
+   * no race with a separate mount loader.
+   */
   useFocusEffect(
     useCallback(() => {
       let alive = true;
 
-      // Resolve at most one overnight monkey raid per effective day.
       (async () => {
         const today = await effectiveToday();
         const h = await loadHammock();
-        if (h.last_raid_date === today) {
-          if (alive) setHammock(h);
-          return;
-        }
         const current = await loadBunch();
+
         if (!current) {
-          const stamped = { ...h, last_raid_date: today };
-          await saveHammock(stamped);
-          if (alive) setHammock(stamped);
+          if (h.last_raid_date !== today) {
+            const stamped = { ...h, last_raid_date: today };
+            await saveHammock(stamped);
+            if (alive) setHammock(stamped);
+          } else if (alive) {
+            setHammock(h);
+          }
           return;
         }
-        const ticked = tickBunch(current, false);
-        const r = resolveRaid(ticked, h, today);
-        await persistBunch(r.bunch);
-        await saveHammock(r.state);
+
+        let nextBunch = tickBunch(current, false);
+        let nextHammock = h;
+        let outcome: RaidOutcome | null = null;
+
+        if (h.last_raid_date !== today) {
+          const r = resolveRaid(nextBunch, h, today);
+          nextBunch = r.bunch;
+          nextHammock = r.state;
+          outcome = r.outcome;
+          // Stamp-first: persist the hammock (carrying the new raid date)
+          // before mutating the bunch, so a crash between the two writes errs
+          // toward "no raid recorded" rather than re-rolling it next focus.
+          await saveHammock(nextHammock);
+          await persistBunch(nextBunch);
+        } else if (nextBunch !== current) {
+          await persistBunch(nextBunch);
+        }
+
         if (alive) {
-          setBunch(r.bunch);
-          setHammock(r.state);
-          if (r.outcome.kind !== 'quiet') setRaidReveal(r.outcome);
+          setBunch(nextBunch);
+          setHammock(nextHammock);
+          // Keep the current selection if it's still alive, else default to
+          // the first alive banana (covers a selected banana being raided).
+          setSelectedId((prev) =>
+            prev && nextBunch.bananas.some((b) => b.id === prev && b.alive)
+              ? prev
+              : (nextBunch.bananas.find((b) => b.alive) ?? nextBunch.bananas[0])
+                  ?.id ?? null,
+          );
+          if (outcome && outcome.kind !== 'quiet') setRaidReveal(outcome);
         }
       })();
 
+      // The IIFE above finishes in a few ms (AsyncStorage), well before this
+      // first 4s tick, so the ticker never races the raid write.
       const interval = setInterval(async () => {
         if (!alive) return;
         const current = await loadBunch();
@@ -407,9 +423,9 @@ function PlantPrompt({ onPress }: { onPress: () => void }) {
       <DancingBanana variant="wiggle" size={56} />
       <Text style={styles.plantTitle}>You don't have a bunch yet</Text>
       <Text style={styles.plantBody}>
-        Get 5–8 fresh green ones. Decide where each lives — fridge, paper bag,
-        windowsill — and try to eat them all at peak. Sometimes a 🐒 has
-        other plans.
+        Get 5 to 8 fresh green ones. Decide where each lives (fridge, paper
+        bag, windowsill) and try to eat them all at peak. And tuck your best
+        one into a hammock, because a 🐒 raids overnight.
       </Text>
       <Pressable
         onPress={onPress}
