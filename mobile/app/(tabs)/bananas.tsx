@@ -40,11 +40,20 @@ import {
   bunchOver,
   formatLifespan,
   bunchAlive,
+  setBananaProtected,
 } from '../../lib/pet';
 import {
   scheduleBunchPeakAlert,
   cancelPeakAlert,
 } from '../../lib/notifications';
+import { effectiveToday } from '../../lib/streak';
+import {
+  HammockState,
+  RaidOutcome,
+  loadHammock,
+  saveHammock,
+  resolveRaid,
+} from '../../lib/hammock';
 import { colors, radius, space, shadow } from '../../lib/theme';
 
 const ORDER: Stage[] = [1, 2, 3, 4, 5, 6, 7];
@@ -63,6 +72,8 @@ const ORDER: Stage[] = [1, 2, 3, 4, 5, 6, 7];
 export default function BananasScreen() {
   const [bunch, setBunch] = useState<Bunch | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [hammock, setHammock] = useState<HammockState | null>(null);
+  const [raidReveal, setRaidReveal] = useState<RaidOutcome | null>(null);
   const [namingOpen, setNamingOpen] = useState(false);
   const [bunchNameInput, setBunchNameInput] = useState('');
   const [plantSpeed, setPlantSpeed] = useState<GameSpeed>(DEFAULT_GAME_SPEED);
@@ -95,6 +106,33 @@ export default function BananasScreen() {
   useFocusEffect(
     useCallback(() => {
       let alive = true;
+
+      // Resolve at most one overnight monkey raid per effective day.
+      (async () => {
+        const today = await effectiveToday();
+        const h = await loadHammock();
+        if (h.last_raid_date === today) {
+          if (alive) setHammock(h);
+          return;
+        }
+        const current = await loadBunch();
+        if (!current) {
+          const stamped = { ...h, last_raid_date: today };
+          await saveHammock(stamped);
+          if (alive) setHammock(stamped);
+          return;
+        }
+        const ticked = tickBunch(current, false);
+        const r = resolveRaid(ticked, h, today);
+        await persistBunch(r.bunch);
+        await saveHammock(r.state);
+        if (alive) {
+          setBunch(r.bunch);
+          setHammock(r.state);
+          if (r.outcome.kind !== 'quiet') setRaidReveal(r.outcome);
+        }
+      })();
+
       const interval = setInterval(async () => {
         if (!alive) return;
         const current = await loadBunch();
@@ -227,6 +265,16 @@ export default function BananasScreen() {
     scheduleBunchPeakAlert(next).catch(() => {});
   };
 
+  const handleToggleHammock = async () => {
+    if (!bunch || !selectedId || !hammock) return;
+    const target = bunch.bananas.find((b) => b.id === selectedId);
+    if (!target || !target.alive) return;
+    const willProtect = !target.protected;
+    if (willProtect && hammock.count < 1) return;
+    const next = await setBananaProtected(bunch, selectedId, willProtect);
+    setBunch(next);
+  };
+
   const handleNewBunch = async () => {
     await clearBunch();
     await cancelPeakAlert();
@@ -248,6 +296,10 @@ export default function BananasScreen() {
           <Text style={styles.lede}>
             Get a bunch. Stagger their ripening. Eat them at peak before
             something happens to them. (Something often happens.)
+          </Text>
+          <Text style={styles.hammockLine}>
+            🪢 {hammock?.count ?? 0} hammock
+            {(hammock?.count ?? 0) === 1 ? '' : 's'} in reserve
           </Text>
         </View>
 
@@ -272,6 +324,8 @@ export default function BananasScreen() {
                     bunchName={bunch.name}
                     onChangeEnvironment={handleEnvChange}
                     onEat={handleEat}
+                    hammockCount={hammock?.count ?? 0}
+                    onToggleHammock={handleToggleHammock}
                   />
                 )}
               </>
@@ -333,6 +387,11 @@ export default function BananasScreen() {
         onEdit={handleEditFromReview}
         onConfirm={handleConfirmReview}
         onSkip={handleSkipPlacement}
+      />
+
+      <RaidRevealModal
+        outcome={raidReveal}
+        onDismiss={() => setRaidReveal(null)}
       />
     </SafeAreaView>
   );
@@ -706,6 +765,52 @@ function PlacementModal({
 }
 
 /* ------------------------------------------------------------------ */
+/* Raid reveal                                                         */
+/* ------------------------------------------------------------------ */
+
+function RaidRevealModal({
+  outcome,
+  onDismiss,
+}: {
+  outcome: RaidOutcome | null;
+  onDismiss: () => void;
+}) {
+  if (!outcome || outcome.kind === 'quiet') return null;
+  const blocked = outcome.kind === 'blocked';
+  const name = outcome.bananaName;
+  return (
+    <Modal visible transparent animationType="fade" onRequestClose={onDismiss}>
+      <View style={styles.modalScrim}>
+        <View style={[styles.modalCard, shadow.card]}>
+          <Text style={styles.raidGlyph}>{blocked ? '🪢' : '🐒'}</Text>
+          <Text style={styles.modalTitle}>
+            {blocked ? 'Hammock held!' : 'Monkey raid'}
+          </Text>
+          <Text style={styles.modalBody}>
+            {blocked
+              ? `A monkey crept in for ${name} overnight. The hammock held. It left with nothing but a loose peel.`
+              : `A monkey slipped in overnight and made off with ${name}. Tuck your best one into a hammock next time.`}
+          </Text>
+          <View style={styles.modalActions}>
+            <Pressable
+              onPress={onDismiss}
+              accessibilityRole="button"
+              accessibilityLabel="Dismiss the raid notice"
+              style={({ pressed }) => [
+                styles.modalBtnPrimary,
+                pressed && { opacity: 0.85 },
+              ]}
+            >
+              <Text style={styles.modalBtnPrimaryText}>Got it</Text>
+            </Pressable>
+          </View>
+        </View>
+      </View>
+    </Modal>
+  );
+}
+
+/* ------------------------------------------------------------------ */
 /* Styles                                                              */
 /* ------------------------------------------------------------------ */
 
@@ -730,6 +835,17 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: colors.inkSoft,
     lineHeight: 20,
+  },
+  hammockLine: {
+    fontSize: 13,
+    color: colors.inkSoft,
+    marginTop: 6,
+    fontWeight: '600',
+  },
+  raidGlyph: {
+    fontSize: 44,
+    textAlign: 'center',
+    marginBottom: 4,
   },
   plantWrap: {
     marginHorizontal: space.md,
