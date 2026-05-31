@@ -27,7 +27,7 @@ The game already models a "bunch" of individual bananas with per-banana ripeness
 
 ## The target and block rule (the heart of it)
 
-1. The monkey targets your **most valuable alive banana** (closest to the peak window, stage 6 / ripeness 65). That is the one you would most regret losing.
+1. The monkey targets your **most valuable alive banana** (closest to the middle of the peak band, ripeness 75; stage 6 spans 65 to 85). That is the one you would most regret losing.
 2. If that banana is in the hammock: the hammock is **consumed**, the banana is **saved**, and the monkey leaves empty-handed that night.
 3. If the target is **not** in the hammock: the monkey takes it (`alive=false`, `end_reason='monkey'`), and any hammock you hold is untouched (it did not block this raid, so it carries over).
 
