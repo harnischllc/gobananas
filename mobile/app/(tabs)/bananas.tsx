@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useState } from 'react';
 import {
   ScrollView,
   View,
@@ -82,10 +82,6 @@ export default function BananasScreen() {
   const [placementBunch, setPlacementBunch] = useState<Bunch | null>(null);
   const [placementIndex, setPlacementIndex] = useState(0);
   const [placementMode, setPlacementMode] = useState<'pick' | 'review'>('pick');
-  // The env the user just tapped but hasn't been auto-committed yet. Lets
-  // the modal show the highlight + blurb for a beat before advancing.
-  const [pendingEnv, setPendingEnv] = useState<Environment | null>(null);
-  const pendingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   /**
    * On focus (which also fires on first mount): load the bunch, catch up
@@ -173,23 +169,6 @@ export default function BananasScreen() {
     setNamingOpen(true);
   };
 
-  // Clear an in-flight pending-env timer so we don't fire a stale advance
-  // after a Back, Skip, or finalize.
-  const cancelPendingPlacement = () => {
-    if (pendingTimerRef.current) {
-      clearTimeout(pendingTimerRef.current);
-      pendingTimerRef.current = null;
-    }
-    setPendingEnv(null);
-  };
-
-  // Make sure no pending timer outlives the screen.
-  useEffect(() => {
-    return () => {
-      if (pendingTimerRef.current) clearTimeout(pendingTimerRef.current);
-    };
-  }, []);
-
   const confirmPlant = async () => {
     const next = await plantBunch(bunchNameInput, plantSpeed);
     setBunch(next);
@@ -198,14 +177,12 @@ export default function BananasScreen() {
     // Hand off to the placement walkthrough. Peak-alert scheduling is
     // deferred until placement finishes (or is skipped) so it uses the
     // final environment mix, not the all-counter default.
-    cancelPendingPlacement();
     setPlacementBunch(next);
     setPlacementIndex(0);
     setPlacementMode('pick');
   };
 
   const finalizePlacement = (finalBunch: Bunch) => {
-    cancelPendingPlacement();
     setBunch(finalBunch);
     setPlacementBunch(null);
     setPlacementIndex(0);
@@ -213,45 +190,34 @@ export default function BananasScreen() {
     scheduleBunchPeakAlert(finalBunch).catch(() => {});
   };
 
-  // Tap an env tile: stage the choice, hold the highlight + blurb for a
-  // beat, then commit + advance to the next banana (or to the review
-  // screen if this was the last one).
-  const handlePickPlacement = (env: Environment) => {
+  // Tap an env tile: commit it to the current banana immediately. No auto
+  // advance. The user drives with Back / Next and a final review.
+  const handlePickPlacement = async (env: Environment) => {
     if (!placementBunch) return;
-    if (pendingTimerRef.current) clearTimeout(pendingTimerRef.current);
-    setPendingEnv(env);
-    const snapshotIndex = placementIndex;
-    pendingTimerRef.current = setTimeout(async () => {
-      pendingTimerRef.current = null;
-      const banana = placementBunch.bananas[snapshotIndex];
-      if (!banana) return;
-      const updated = await setBananaEnvironment(
-        placementBunch,
-        banana.id,
-        env,
-      );
-      setPendingEnv(null);
-      setBunch(updated);
-      const nextIdx = snapshotIndex + 1;
-      if (nextIdx >= updated.bananas.length) {
-        setPlacementBunch(updated);
-        setPlacementIndex(snapshotIndex);
-        setPlacementMode('review');
-      } else {
-        setPlacementBunch(updated);
-        setPlacementIndex(nextIdx);
-      }
-    }, 650);
+    const banana = placementBunch.bananas[placementIndex];
+    if (!banana) return;
+    const updated = await setBananaEnvironment(placementBunch, banana.id, env);
+    setPlacementBunch(updated);
+    setBunch(updated);
+  };
+
+  // Advance to the next banana, or to the review screen after the last one.
+  const handleNextPlacement = () => {
+    if (!placementBunch) return;
+    const nextIdx = placementIndex + 1;
+    if (nextIdx >= placementBunch.bananas.length) {
+      setPlacementMode('review');
+    } else {
+      setPlacementIndex(nextIdx);
+    }
   };
 
   const handleBackPlacement = () => {
     if (!placementBunch) return;
-    cancelPendingPlacement();
     if (placementIndex > 0) setPlacementIndex(placementIndex - 1);
   };
 
   const handleEditFromReview = (idx: number) => {
-    cancelPendingPlacement();
     setPlacementIndex(idx);
     setPlacementMode('pick');
   };
@@ -397,9 +363,9 @@ export default function BananasScreen() {
         bunch={placementBunch}
         index={placementIndex}
         mode={placementMode}
-        pendingEnv={pendingEnv}
         onPick={handlePickPlacement}
         onBack={handleBackPlacement}
+        onNext={handleNextPlacement}
         onEdit={handleEditFromReview}
         onConfirm={handleConfirmReview}
         onSkip={handleSkipPlacement}
@@ -604,11 +570,11 @@ function NamingModal({
  * everything to the counter.
  *
  * Two modes:
- *   pick   — one banana at a time. Tap an env tile, the tile + blurb
- *            highlight, and after a beat the modal auto-advances. Back
- *            returns to the previous banana. Skip bails any remaining
- *            bananas to their planting default.
- *   review — final confirmation. Lists every banana with the env it's
+ *   pick: one banana at a time. Tap an env tile to set where it lives
+ *         (committed immediately). Back and Next move between bananas at
+ *         the user's pace. Skip bails any remaining bananas to their
+ *         planting default.
+ *   review: final confirmation. Lists every banana with the env it's
  *            ended up in; tapping any row jumps back into pick mode at
  *            that index for one more pass.
  */
@@ -616,9 +582,9 @@ function PlacementModal({
   bunch,
   index,
   mode,
-  pendingEnv,
   onPick,
   onBack,
+  onNext,
   onEdit,
   onConfirm,
   onSkip,
@@ -626,9 +592,9 @@ function PlacementModal({
   bunch: Bunch | null;
   index: number;
   mode: 'pick' | 'review';
-  pendingEnv: Environment | null;
   onPick: (env: Environment) => void;
   onBack: () => void;
+  onNext: () => void;
   onEdit: (idx: number) => void;
   onConfirm: () => void;
   onSkip: () => void;
@@ -695,10 +661,10 @@ function PlacementModal({
 
   const banana = bunch.bananas[index];
   if (!banana) return null;
-  // The highlight reflects the staged choice if there is one, otherwise
-  // whatever's been committed (defaults to counter on a fresh banana).
-  const highlightEnv: Environment = pendingEnv ?? banana.environment;
+  // The highlight reflects the committed environment (counter by default).
+  const highlightEnv: Environment = banana.environment;
   const showBackBtn = index > 0;
+  const isLast = index >= total - 1;
   return (
     <Modal
       visible
@@ -761,6 +727,19 @@ function PlacementModal({
           <Text style={styles.envHint}>
             {ENVIRONMENTS[highlightEnv].blurb}
           </Text>
+          <Pressable
+            onPress={onNext}
+            accessibilityRole="button"
+            accessibilityLabel={isLast ? 'Review all placements' : 'Next banana'}
+            style={({ pressed }) => [
+              styles.placementNextBtn,
+              pressed && { opacity: 0.85 },
+            ]}
+          >
+            <Text style={styles.placementNextText}>
+              {isLast ? 'Review placements ›' : 'Next ›'}
+            </Text>
+          </Pressable>
           <Pressable
             onPress={onSkip}
             accessibilityRole="button"
@@ -1174,6 +1153,19 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: colors.inkSoft,
     textDecorationLine: 'underline',
+  },
+  placementNextBtn: {
+    marginTop: 16,
+    alignSelf: 'stretch',
+    backgroundColor: colors.accent,
+    borderRadius: radius.pill,
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  placementNextText: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: colors.ink,
   },
   placementTopRow: {
     flexDirection: 'row',
