@@ -6,8 +6,8 @@
  *   2. Decode to RGB pixels (jpeg-js, pure JS — works in Expo Go)
  *   3. Sample every Nth pixel for speed (matches Python's sample_rate)
  *   4. Convert each sampled RGB → HSV
- *   5. Bucket hues into 5° bins, pick the most common
- *   6. Map dominant hue to a stage via `hueToStage()` in lib/stages.ts
+ *   5. Take the MEDIAN hue of the saturated pixels (robust to sticker/glare)
+ *   6. Map that hue to a stage via `hueToStage()` in lib/stages.ts
  *   7. Score confidence by how tightly the dominant hue sits inside its band
  *
  * The reference implementation is at utils/color_detection.py
@@ -73,8 +73,12 @@ interface DecodedImage {
 }
 
 /**
- * Sample pixels, convert each to HSV, and pick the dominant hue.
- * Mirrors `extract_dominant_color()` in color_detection.py.
+ * Sample pixels, convert each to HSV, and return the MEDIAN hue of the
+ * saturated pixels. This diverges from the Python `extract_dominant_color()`,
+ * which took the mode of a 5° histogram: that let a small but intensely
+ * saturated, color-uniform patch (a fruit sticker) win a single tall bin and
+ * override the banana, whose color spreads across many bins (green alone spans
+ * 80–140°). The median rejects a minority off-color patch by construction.
  */
 function extractDominantHue(img: DecodedImage): number {
   const { width, height, data } = img;
@@ -87,8 +91,9 @@ function extractDominantHue(img: DecodedImage): number {
     : 1;
   const step = SAMPLE_RATE * downsample;
 
-  // jpeg-js returns RGBA — 4 bytes per pixel.
-  const buckets = new Map<number, number>();
+  // jpeg-js returns RGBA — 4 bytes per pixel. Collect the hue of every
+  // saturated banana-candidate pixel; the median is taken below.
+  const hues: number[] = [];
 
   for (let y = 0; y < height; y += step) {
     for (let x = 0; x < width; x += step) {
@@ -97,31 +102,35 @@ function extractDominantHue(img: DecodedImage): number {
       const g = data[i + 1] / 255;
       const b = data[i + 2] / 255;
 
-      const hue = rgbToHue(r, g, b);
       // Skip nearly-grayscale pixels (very low saturation) — they don't
       // tell us anything about ripeness and dominate the count when a
       // banana is photographed against a white wall.
       if (isLowSaturation(r, g, b)) continue;
 
-      // Bucket to 5° bins (matches Python's `round(hue/5)*5`).
-      const bucket = Math.round(hue / 5) * 5;
-      buckets.set(bucket, (buckets.get(bucket) ?? 0) + 1);
+      const hue = rgbToHue(r, g, b);
+      // Drop hues no banana ever shows — cyan through magenta. This removes the
+      // blue half of a fruit sticker and blue/purple backgrounds, while keeping
+      // the whole banana range (deep-brown reds ~0–40°, yellows, greens to ~150°).
+      if (hue >= 160 && hue <= 340) continue;
+
+      hues.push(hue);
     }
   }
 
-  if (buckets.size === 0) {
+  if (hues.length === 0) {
     return 60; // Default green, matches the Python fallback.
   }
 
-  let dominant = 60;
-  let max = 0;
-  for (const [b, count] of buckets) {
-    if (count > max) {
-      max = count;
-      dominant = b;
-    }
-  }
-  return dominant;
+  // Median hue of the saturated pixels. A sticker (or a glare spot) is a
+  // minority of the frame, so it can't move the median the way it could win
+  // the old histogram mode. Rounded to 5° to match the granularity the stage
+  // boundaries in lib/stages.ts were calibrated against.
+  hues.sort((a, b) => a - b);
+  const mid = hues.length >> 1;
+  const median = hues.length % 2 === 0
+    ? (hues[mid - 1] + hues[mid]) / 2
+    : hues[mid];
+  return Math.round(median / 5) * 5;
 }
 
 /**
