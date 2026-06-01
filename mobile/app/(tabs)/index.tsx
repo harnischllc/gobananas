@@ -52,6 +52,9 @@ export default function ScanHome() {
     useCallback(() => {
       let alive = true;
       refresh();
+      // Passive read only: catch up ripeness for the home preview. The
+      // overnight monkey raid is owned by the Bananas tab; never resolve it
+      // here, or it would double-apply.
       (async () => {
         const stored = await loadBunch();
         if (!alive) return;
