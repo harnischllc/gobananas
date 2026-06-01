@@ -29,16 +29,24 @@ import {
   tickBunch,
 } from '../../lib/pet';
 import { colors, radius, space } from '../../lib/theme';
+import { RewardsCard } from '../../components/RewardsCard';
+import { evaluateClaim, loadStreak } from '../../lib/streak';
+import { loadCollection } from '../../lib/drops';
 
 export default function ScanHome() {
   const router = useRouter();
   const [recent, setRecent] = useState<ScanRecord[]>([]);
   const [bunch, setBunch] = useState<Bunch | null>(null);
   const [busy, setBusy] = useState(false);
+  const [streakCurrent, setStreakCurrent] = useState(0);
+  const [canClaim, setCanClaim] = useState(false);
+  const [collectionCount, setCollectionCount] = useState(0);
 
   const refresh = useCallback(async () => {
     setRecent((await loadHistory()).slice(0, 3));
   }, []);
+
+  const openRewards = () => router.push('/rewards');
 
   useFocusEffect(
     useCallback(() => {
@@ -54,6 +62,17 @@ export default function ScanHome() {
         } else if (alive) {
           setBunch(null);
         }
+      })();
+      (async () => {
+        const [streak, gate, collection] = await Promise.all([
+          loadStreak(),
+          evaluateClaim(),
+          loadCollection(),
+        ]);
+        if (!alive) return;
+        setStreakCurrent(streak.current);
+        setCanClaim(gate.canClaim);
+        setCollectionCount(collection.length);
       })();
       return () => {
         alive = false;
@@ -183,6 +202,16 @@ export default function ScanHome() {
         )}
 
         <ScanCard onScan={handleScan} busy={busy} />
+
+        <View style={styles.sectionHead}>
+          <Text style={styles.sectionTitle}>DAILY CRATE</Text>
+        </View>
+        <RewardsCard
+          streakCurrent={streakCurrent}
+          canClaim={canClaim}
+          collectionCount={collectionCount}
+          onPress={openRewards}
+        />
 
         <View style={styles.sectionHead}>
           <Text style={styles.sectionTitle}>RECENT</Text>
