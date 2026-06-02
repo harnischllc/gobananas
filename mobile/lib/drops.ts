@@ -287,6 +287,19 @@ export const RARITY_LABEL: Record<Rarity, string> = {
   mythic: 'Mythic',
 };
 
+/**
+ * Readable text/foreground color for a solid chip filled with the rarity
+ * color. Chosen for WCAG-AA contrast against each fill: the light fills
+ * (green, gold) take dark ink; the dark fills (brown, purple) take white.
+ * White-on-gold was ~2:1 before this.
+ */
+export const RARITY_TEXT_ON: Record<Rarity, string> = {
+  peels: '#ffffff',
+  real: '#1f1d18',
+  fictional: '#1f1d18',
+  mythic: '#ffffff',
+};
+
 /* ------------------------------------------------------------------ */
 /* Open a crate                                                        */
 /* ------------------------------------------------------------------ */

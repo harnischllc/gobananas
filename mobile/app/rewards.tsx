@@ -13,6 +13,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { CrateOpen } from '../components/CrateOpen';
 import { VarietyCard } from '../components/VarietyCard';
+import { VarietyDetail } from '../components/VarietyDetail';
 import {
   VARIETIES,
   loadCollection,
@@ -23,6 +24,7 @@ import {
   RARITY_COLOR,
   currentSeason,
   type DropResult,
+  type Variety,
 } from '../lib/drops';
 import {
   ClaimGate,
@@ -59,6 +61,7 @@ export default function RewardsScreen() {
   const [history, setHistory] = useState<DropResult[]>([]);
   const [today, setToday] = useState<string>('');
   const [opening, setOpening] = useState(false);
+  const [selected, setSelected] = useState<Variety | null>(null);
 
   const refresh = useCallback(async () => {
     const [s, g, c, h, t] = await Promise.all([
@@ -248,6 +251,7 @@ export default function RewardsScreen() {
               key={v.id}
               variety={v}
               unlocked={collection.includes(v.id)}
+              onPress={() => setSelected(v)}
             />
           ))}
         </View>
@@ -258,13 +262,17 @@ export default function RewardsScreen() {
             <Text style={styles.sectionTitle}>RECENT DROPS</Text>
             <View style={[styles.historyCard, { borderColor: colors.line }]}>
               {history.slice(0, 6).map((h, i) => (
-                <View
+                <Pressable
                   key={`${h.iso}-${i}`}
-                  style={[
+                  onPress={() => setSelected(h.variety)}
+                  accessibilityRole="button"
+                  accessibilityLabel={`${h.variety.name}, view details`}
+                  style={({ pressed }) => [
                     styles.historyRow,
                     i === Math.min(history.length, 6) - 1 && {
                       borderBottomWidth: 0,
                     },
+                    pressed && { opacity: 0.6 },
                   ]}
                 >
                   <Text style={styles.historyGlyph}>{h.variety.glyph}</Text>
@@ -280,7 +288,7 @@ export default function RewardsScreen() {
                       { backgroundColor: RARITY_COLOR[h.variety.rarity] },
                     ]}
                   />
-                </View>
+                </Pressable>
               ))}
             </View>
           </>
@@ -326,6 +334,8 @@ export default function RewardsScreen() {
           </>
         )}
       </ScrollView>
+
+      <VarietyDetail variety={selected} onClose={() => setSelected(null)} />
     </SafeAreaView>
   );
 }

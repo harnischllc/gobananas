@@ -11,6 +11,7 @@ import {
   DropResult,
   RARITY_COLOR,
   RARITY_LABEL,
+  RARITY_TEXT_ON,
   Variety,
 } from '../lib/drops';
 import { colors, radius, space, shadow } from '../lib/theme';
@@ -210,7 +211,7 @@ function DropCard({ drop }: { drop: DropResult }) {
           { backgroundColor: rarityColor },
         ]}
       >
-        <Text style={styles.rarityChipText}>
+        <Text style={[styles.rarityChipText, { color: RARITY_TEXT_ON[variety.rarity] }]}>
           {RARITY_LABEL[variety.rarity].toUpperCase()}
         </Text>
       </View>

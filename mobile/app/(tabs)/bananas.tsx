@@ -391,7 +391,7 @@ function PlantPrompt({ onPress }: { onPress: () => void }) {
       <Text style={styles.plantBody}>
         Get 5 to 8 fresh green ones. Decide where each lives (fridge, paper
         bag, windowsill) and try to eat them all at peak. And tuck your best
-        one into a hammock, because a 🐒 raids overnight.
+        one into a hammock, because a monkey 🐒 raids overnight.
       </Text>
       <Pressable
         onPress={onPress}
@@ -860,7 +860,7 @@ const styles = StyleSheet.create({
   },
   plantBody: {
     fontSize: 13,
-    color: colors.inkSoft,
+    color: colors.ink,
     textAlign: 'center',
     marginTop: 6,
     lineHeight: 18,
