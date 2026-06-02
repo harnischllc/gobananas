@@ -525,7 +525,7 @@ const RANDOM_EVENTS: RandomEvent[] = [
   {
     reason: 'avocado_jealous',
     detail: (_banana, bunchName) =>
-      `The avocado on the counter ripened first. ${bunchName} feel personally attacked.`,
+      `The avocado on the counter ripened first and stole the spotlight. ${bunchName} just became the second banana.`,
     glyph: '🥑',
     ends: false,
   },
