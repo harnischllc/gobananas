@@ -190,7 +190,7 @@ export function CrateOpen({ onComplete, onOpen }: Props) {
 /* ------------------------------------------------------------------ */
 
 function DropCard({ drop }: { drop: DropResult }) {
-  const { variety, firstTime, hammockAwarded } = drop;
+  const { variety, firstTime, hammocksGranted } = drop;
   const rarityColor = RARITY_COLOR[variety.rarity];
   const isPeels = variety.rarity === 'peels';
 
@@ -241,18 +241,20 @@ function DropCard({ drop }: { drop: DropResult }) {
         </View>
       )}
 
-      {isPeels && !hammockAwarded && (
+      {isPeels && !hammocksGranted && (
         <Text style={styles.peelsNote}>(no rewards earned. just vibes.)</Text>
       )}
 
-      {hammockAwarded && (
+      {hammocksGranted ? (
         <View style={styles.hammockBadge}>
-          <Text style={styles.hammockBadgeText}>🪢 +1 Banana Hammock</Text>
+          <Text style={styles.hammockBadgeText}>
+            +{hammocksGranted} Banana Hammock{hammocksGranted > 1 ? 's' : ''} 🪢
+          </Text>
           <Text style={styles.hammockBadgeSub}>
-            Tuck a banana in on the Bananas tab to foil the monkey.
+            Your weekly supply. Tuck a banana in on the Bananas tab to foil the monkey.
           </Text>
         </View>
-      )}
+      ) : null}
     </View>
   );
 }

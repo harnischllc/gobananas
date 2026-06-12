@@ -18,7 +18,8 @@
  */
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { grantHammock } from './hammock';
+import { grantWeeklyIfDue, loadHammock, saveHammock } from './hammock';
+import { effectiveToday } from './streak';
 
 const COLLECTION_KEY = 'gobananas/drops/collection/v1';
 const HISTORY_KEY = 'gobananas/drops/history/v1';
@@ -310,8 +311,8 @@ export interface DropResult {
   firstTime: boolean;
   /** Peels-flavor text varies; this is the chosen one for this drop. */
   peelsFlavor?: string;
-  /** True if this crate also yielded a Banana Hammock. */
-  hammockAwarded?: boolean;
+  /** Hammocks granted alongside this crate (the weekly top-up, 0 if none). */
+  hammocksGranted?: number;
   iso: string;
 }
 
@@ -335,9 +336,13 @@ function rollRarity(weights: Weights): Rarity {
  */
 export async function openCrate(): Promise<DropResult> {
   const rarity = rollRarity(ACTIVE_WEIGHTS);
-  // ~20% of crates also drop a Banana Hammock (scarce by design).
-  const hammockAwarded = Math.random() < 0.2;
-  if (hammockAwarded) await grantHammock(1);
+
+  // Weekly hammock supply: the first crate of a new week tops you up 1-2.
+  // (The starter wallet covers week one — see lib/hammock.ts.)
+  const hammockState = await loadHammock();
+  const weekly = grantWeeklyIfDue(hammockState, await effectiveToday());
+  if (weekly.state !== hammockState) await saveHammock(weekly.state);
+  const hammocksGranted = weekly.granted;
 
   if (rarity === 'peels') {
     const flavor =
@@ -346,7 +351,7 @@ export async function openCrate(): Promise<DropResult> {
       variety: { ...PEELS_VARIETY, flavor },
       firstTime: false,
       peelsFlavor: flavor,
-      hammockAwarded,
+      hammocksGranted,
       iso: new Date().toISOString(),
     };
     await pushHistory(result);
@@ -370,7 +375,7 @@ export async function openCrate(): Promise<DropResult> {
   const result: DropResult = {
     variety,
     firstTime,
-    hammockAwarded,
+    hammocksGranted,
     iso: new Date().toISOString(),
   };
   await pushHistory(result);
