@@ -1,0 +1,304 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Go Bananas · Banana Facts (curated v1)</title>
+<style>
+  :root {
+    --bg: #faf7f0;
+    --ink: #1f1d18;
+    --ink-soft: #6b675e;
+    --line: #e9e4d6;
+    --card: #ffffff;
+    --accent: #f5c518;
+    --accent-deep: #d9a800;
+    --yellow-soft: #fdf2bf;
+    --green: #5d9a3f;
+    --green-soft: #d6ebc8;
+    --purple: #7a4ab0;
+    --brown: #8a5a2b;
+    --brown-soft: #ead7c1;
+    --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--font);
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 920px; margin: 0 auto; padding: 32px 20px 80px; }
+
+  header { border-bottom: 2px solid var(--line); padding-bottom: 20px; margin-bottom: 8px; }
+  h1 { font-size: 30px; margin: 0 0 6px; letter-spacing: -0.01em; }
+  .sub { color: var(--ink-soft); font-size: 15px; margin: 0; }
+  .stats { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+  .stat {
+    background: var(--card); border: 1px solid var(--line); border-radius: 999px;
+    padding: 6px 14px; font-size: 13px; font-weight: 600;
+  }
+  .stat b { color: var(--accent-deep); }
+
+  .controls {
+    position: sticky; top: 0; z-index: 5; background: var(--bg);
+    padding: 14px 0; margin: 8px 0 4px; border-bottom: 1px solid var(--line);
+    display: flex; flex-wrap: wrap; gap: 8px; align-items: center;
+  }
+  .chip {
+    border: 1px solid var(--line); background: var(--card); color: var(--ink);
+    border-radius: 999px; padding: 6px 13px; font-size: 13px; font-weight: 600;
+    cursor: pointer; user-select: none;
+  }
+  .chip[aria-pressed="true"] { background: var(--ink); color: #fff; border-color: var(--ink); }
+  .toggle { margin-left: auto; display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--ink-soft); }
+  .search {
+    border: 1px solid var(--line); border-radius: 999px; padding: 7px 14px;
+    font-size: 13px; font-family: var(--font); min-width: 180px; flex: 1 1 180px;
+  }
+
+  .group-h {
+    font-size: 13px; text-transform: uppercase; letter-spacing: 0.08em;
+    color: var(--ink-soft); margin: 30px 0 12px; font-weight: 700;
+  }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  @media (max-width: 680px) { .grid { grid-template-columns: 1fr; } }
+
+  .card {
+    background: var(--card); border: 1px solid var(--line); border-radius: 16px;
+    padding: 16px 16px 14px; box-shadow: 0 6px 14px rgba(31,29,24,0.05);
+    display: flex; flex-direction: column; gap: 9px;
+  }
+  .card-top { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .rarity {
+    font-size: 11px; font-weight: 700; letter-spacing: 0.03em;
+    border-radius: 999px; padding: 3px 9px; color: #fff;
+  }
+  .r-common { background: var(--green); }
+  .r-surprising { background: var(--accent-deep); color: var(--ink); }
+  .r-wild { background: var(--purple); }
+  .cat { font-size: 11px; font-weight: 600; color: var(--ink-soft); }
+  .flag {
+    font-size: 11px; font-weight: 700; color: var(--brown);
+    background: var(--brown-soft); border-radius: 999px; padding: 3px 9px;
+  }
+  .fact { font-size: 15px; margin: 0; }
+  .quip {
+    font-size: 13.5px; color: var(--ink-soft); font-style: italic;
+    border-left: 3px solid var(--accent); padding-left: 10px; margin: 0;
+  }
+  .src { font-size: 12px; margin-top: 2px; }
+  .src a { color: var(--accent-deep); text-decoration: none; }
+  .src a:hover { text-decoration: underline; }
+
+  .myths { margin-top: 48px; border-top: 2px solid var(--line); padding-top: 24px; }
+  .myths h2 { font-size: 20px; margin: 0 0 4px; }
+  .myths p.lead { color: var(--ink-soft); margin: 0 0 16px; font-size: 14px; }
+  .myth {
+    background: #fff; border: 1px solid var(--line); border-left: 4px solid var(--brown);
+    border-radius: 12px; padding: 13px 15px; margin-bottom: 10px;
+  }
+  .myth .m { font-weight: 700; margin: 0 0 4px; }
+  .myth .w { color: var(--ink-soft); font-size: 14px; margin: 0; }
+
+  .note {
+    background: var(--yellow-soft); border: 1px solid var(--accent-deep);
+    border-radius: 12px; padding: 14px 16px; margin: 22px 0 0; font-size: 14px;
+  }
+  .empty { color: var(--ink-soft); font-style: italic; padding: 20px 0; }
+
+  @media print {
+    .controls { display: none; }
+    .card { break-inside: avoid; box-shadow: none; }
+    body { background: #fff; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>🍌 Go Bananas · Banana Facts</h1>
+    <p class="sub">Curated v1. Every fact is sourced and fact-checked. Each pairs a true fact with a deadpan quip; the fact always outweighs the funny.</p>
+    <div class="stats" id="stats"></div>
+  </header>
+
+  <div class="controls">
+    <span class="chip" data-cat="all" aria-pressed="true">All</span>
+    <span class="chip" data-cat="Botany" aria-pressed="false">Botany</span>
+    <span class="chip" data-cat="Genetics" aria-pressed="false">Genetics</span>
+    <span class="chip" data-cat="History" aria-pressed="false">History</span>
+    <span class="chip" data-cat="Science" aria-pressed="false">Science</span>
+    <span class="chip" data-cat="Nutrition" aria-pressed="false">Nutrition</span>
+    <span class="chip" data-cat="Culture" aria-pressed="false">Culture</span>
+    <span class="chip" data-cat="Records" aria-pressed="false">Records</span>
+    <span class="chip" data-cat="Language" aria-pressed="false">Language</span>
+    <span class="chip" data-cat="Oddities" aria-pressed="false">Oddities</span>
+    <input class="search" id="search" type="search" placeholder="Search facts" />
+    <label class="toggle"><input type="checkbox" id="showSensitive" /> show flagged</label>
+  </div>
+
+  <div id="list"></div>
+
+  <div class="note" id="flagNote"></div>
+
+  <section class="myths" id="myths"></section>
+</div>
+
+<script>
+const FACTS = [
+  {id:'banana-is-a-berry',category:'Botany',rarity:'common',fact:'A banana is botanically a berry. It develops from a single flower with one ovary and a soft fruit wall enclosing the seeds, the textbook definition of a berry.',quip:'The produce aisle does not want to hear it.',sourceName:'Berry (botany), Wikipedia',sourceUrl:'https://en.wikipedia.org/wiki/Berry_(botany)'},
+  {id:'strawberries-not-berries',category:'Botany',rarity:'surprising',fact:'Strawberries and raspberries are not true berries. Each forms from a flower with many separate ovaries, making it an aggregate fruit, while the single-ovary banana qualifies as a real berry.',quip:'The berries with berry in the name. Frauds.',sourceName:'Stanford Magazine, Bananas Are Berries',sourceUrl:'https://stanfordmag.org/contents/bananas-are-berries'},
+  {id:'largest-herb',category:'Botany',rarity:'surprising',fact:'The banana plant is the largest herbaceous flowering plant in the world, not a tree. It has no woody trunk; what looks like a trunk is a pseudostem of tightly packed leaf bases.',quip:'Filed under herb, next to the basil.',sourceName:'Banana, Wikipedia',sourceUrl:'https://en.wikipedia.org/wiki/Banana'},
+  {id:'musa-ingens',category:'Botany',rarity:'wild',fact:'The largest herb on Earth is the giant banana Musa ingens of montane New Guinea, with a non-woody pseudostem reaching about 15 meters tall and leaves up to 5 meters long.',quip:'A five-story herb. The basil is intimidated.',sourceName:'Musa ingens, Wikipedia',sourceUrl:'https://en.wikipedia.org/wiki/Musa_ingens'},
+  {id:'hands-and-fingers',category:'Botany',rarity:'common',fact:'A banana bunch is made of clusters called hands, and each individual banana is a finger. A bunch holds around nine hands with up to about 20 fingers each.',quip:'You eat the fingers off the hand. Anyway.',sourceName:'Banana, Wikipedia',sourceUrl:'https://en.wikipedia.org/wiki/Banana'},
+  {id:'wild-banana-seeds',category:'Botany',rarity:'surprising',fact:'Wild bananas are full of hard seeds. Each fruit of Musa acuminata, the ancestor of most dessert bananas, can hold roughly 15 to 62 seeds about 5 to 6 mm across, leaving little edible pulp.',quip:'The original recipe. Mostly gravel.',sourceName:'Musa acuminata, Wikipedia',sourceUrl:'https://en.wikipedia.org/wiki/Musa_acuminata'},
+  {id:'parthenocarpy-seedless',category:'Genetics',rarity:'surprising',fact:'Edible bananas set fruit without pollination or fertilization, a process called parthenocarpy, which is why they have no real seeds.',quip:'Fruit with no plan to reproduce.',sourceName:'Banana, Wikipedia',sourceUrl:'https://en.wikipedia.org/wiki/Banana'},
+  {id:'triploid-33-vs-22',category:'Genetics',rarity:'surprising',fact:'Most cultivated bananas are triploid with 33 chromosomes, three sets of 11, while their wild ancestors are diploid with 22. The extra set disrupts meiosis, leaving them sterile and propagated from suckers.',quip:'Three sets. Cannot count to a baby.',sourceName:'Annals of Botany, Oxford',sourceUrl:'https://academic.oup.com/aob/article/127/1/7/5760888'},
+  {id:'cavendish-clones',category:'Genetics',rarity:'surprising',fact:'Every Cavendish banana is a near-identical clone, propagated from suckers or tissue culture. That genetic uniformity is exactly why a single fungal strain can threaten the entire crop.',quip:'Every banana the same banana. Convenient for the fungus.',sourceName:'Cavendish banana, Wikipedia',sourceUrl:'https://en.wikipedia.org/wiki/Cavendish_banana'},
+  {id:'genome-2012',category:'Genetics',rarity:'wild',fact:"The banana reference genome was sequenced in 2012 and holds more than 36,000 protein-coding genes, slightly more than the human genome's roughly 20,000.",quip:'More genes than you. Fewer opinions.',sourceName:"Nature, D'Hont et al. 2012",sourceUrl:'https://www.nature.com/articles/nature11241'},
+  {id:'human-dna-myth',category:'Genetics',rarity:'surprising',fact:'The line that we share 50 percent of our DNA with bananas is wrong. About 60 percent of human genes have a banana counterpart, but the matching proteins are only about 40 percent identical, and coding genes are a tiny slice of total DNA.',quip:'The 50 percent line is a lie people repeat at parties.',sourceName:'IFLScience, citing NHGRI',sourceUrl:'https://www.iflscience.com/do-we-really-share-60-percent-of-our-dna-with-a-banana-79391'},
+  {id:'kuk-swamp',category:'History',rarity:'wild',fact:'Banana cultivation at Kuk Swamp in the New Guinea highlands dates back at least 7,000 years, the earliest evidence of banana farming anywhere, and the site is a UNESCO World Heritage listing for it.',quip:'Older than the wheel. Holds a grudge about it.',sourceName:'UNESCO World Heritage Centre, Kuk',sourceUrl:'https://whc.unesco.org/en/list/887/'},
+  {id:'cavendish-duke',category:'History',rarity:'surprising',fact:'The Cavendish banana is named for William Cavendish, 6th Duke of Devonshire, who received plants around 1834 that were grown by gardener Joseph Paxton at Chatsworth House.',quip:'A duke. The fruit has a better pedigree than you.',sourceName:'Cavendish banana, Wikipedia',sourceUrl:'https://en.wikipedia.org/wiki/Cavendish_banana'},
+  {id:'cavendish-replaced-gros-michel',category:'History',rarity:'common',fact:'The Cavendish became the export banana only after Panama disease rendered the previously dominant Gros Michel commercially extinct in the 1950s and 1960s.',quip:'The understudy who never gave the role back.',sourceName:'Panama disease, Wikipedia',sourceUrl:'https://en.wikipedia.org/wiki/Panama_disease'},
+  {id:'ulua-valley',category:'History',rarity:'wild',fact:'Panama disease eradicated roughly 30,000 hectares of Gros Michel plantation in the Ulua Valley of Honduras between 1940 and 1960.',quip:'Thirty thousand hectares. The fungus was not in a hurry.',sourceName:'Panama disease, Wikipedia',sourceUrl:'https://en.wikipedia.org/wiki/Panama_disease'},
+  {id:'fungus-30-years',category:'History',rarity:'surprising',fact:'The fungus behind Panama disease survives in soil as resting spores for up to about 30 years and resists fungicides, so infested land is effectively lost for susceptible bananas.',quip:'Squats in the dirt for three decades. Patient.',sourceName:'Panama disease, Wikipedia',sourceUrl:'https://en.wikipedia.org/wiki/Panama_disease'},
+  {id:'tr4-spread',category:'History',rarity:'surprising',fact:'The Tropical Race 4 strain that attacks Cavendish bananas spread from 16 affected countries in 2018 to 23 by the mid-2020s, crossing into Latin America in Colombia in 2019.',quip:'Sixteen to twenty-three. It travels well.',sourceName:'Frontiers in Plant Science, 2024',sourceUrl:'https://www.frontiersin.org/journals/plant-science/articles/10.3389/fpls.2024.1397617/full'},
+  {id:'el-pulpo',category:'History',rarity:'surprising',fact:'By the 1930s the United Fruit Company owned about 3.5 million acres across Central America and the Caribbean and was nicknamed el pulpo, the octopus, for its reach into every part of a host economy.',quip:'An octopus is a generous number of arms.',sourceName:'United Fruit Company, Wikipedia',sourceUrl:'https://en.wikipedia.org/wiki/United_Fruit_Company'},
+  {id:'guatemala-coup',category:'History',rarity:'wild',fact:"The 1954 overthrow of Guatemalan president Jacobo Arbenz was a CIA operation, PBSUCCESS, set off after his land reform expropriated unused United Fruit land. The Dulles brothers, who ran State and the CIA, had been partners at United Fruit's law firm.",quip:'The fruit had two brothers in government.',sourceName:'1954 Guatemalan coup, Wikipedia',sourceUrl:'https://en.wikipedia.org/wiki/1954_Guatemalan_coup_d%27%C3%A9tat'},
+  {id:'banana-massacre',category:'History',rarity:'wild',sensitive:true,fact:'In the 1928 Banana Massacre the Colombian army fired on striking United Fruit workers near Cienaga; death-toll estimates range from 47 to roughly 2,000. Garcia Marquez later fictionalized it as 3,000 dead.',quip:'A range that wide is its own indictment.',sourceName:'Banana Massacre, Wikipedia',sourceUrl:'https://en.wikipedia.org/wiki/Banana_Massacre'},
+  {id:'zemurray-lee-christmas',category:'History',rarity:'wild',fact:'Banana magnate Sam Zemurray financed a 1911 coup in Honduras using mercenaries led by a gunman named Lee Christmas, installing Manuel Bonilla, who rewarded him with tax-free land.',quip:'His hired gun was named Lee Christmas. Yes.',sourceName:'Sam Zemurray, Wikipedia',sourceUrl:'https://en.wikipedia.org/wiki/Sam_Zemurray'},
+  {id:'united-fruit-chiquita',category:'History',rarity:'surprising',fact:'The United Fruit Company still exists under a new name. It became United Brands in 1970 and was renamed Chiquita Brands International in 1984.',quip:'The little sticker has a long memory.',sourceName:'United Fruit Company, Wikipedia',sourceUrl:'https://en.wikipedia.org/wiki/United_Fruit_Company'},
+  {id:'cavendish-99-exports',category:'Science',rarity:'surprising',fact:'The Cavendish makes up roughly 99 percent of banana exports to developed-country markets, but only about 47 percent of total global banana production, since most bananas are eaten where they grow.',quip:'Ninety-nine percent one clone, for the part that ships.',sourceName:'Cavendish banana, Wikipedia',sourceUrl:'https://en.wikipedia.org/wiki/Cavendish_banana'},
+  {id:'banana-15-bq',category:'Science',rarity:'wild',fact:'A single banana is mildly radioactive at roughly 15 becquerels, meaning about 15 atoms inside it decay every second, because of the naturally unstable isotope potassium-40.',quip:'Fifteen tiny events a second. The banana is unbothered.',sourceName:'Banana equivalent dose, Wikipedia',sourceUrl:'https://en.wikipedia.org/wiki/Banana_equivalent_dose'},
+  {id:'body-280x-radioactive',category:'Science',rarity:'wild',fact:'Your own body is far more radioactive than a banana. A typical adult holds about 16 milligrams of potassium-40, making the body roughly 280 times more radioactive than one banana.',quip:'You are the scariest thing in your own fruit bowl.',sourceName:'BBC Science Focus',sourceUrl:'https://www.sciencefocus.com/science/how-many-bananas-would-i-need-to-eat-to-become-radioactive'},
+  {id:'dose-not-cumulative',category:'Science',rarity:'surprising',fact:'Eating bananas does not build up radiation in you. One banana raises your total potassium-40 by only about 0.4 percent, and the body holds potassium at a fixed level and flushes the excess within hours.',quip:'The body files it under temporary. It does not keep receipts.',sourceName:'BBC Science Focus',sourceUrl:'https://www.sciencefocus.com/science/how-many-bananas-would-i-need-to-eat-to-become-radioactive'},
+  {id:'portal-monitors',category:'Science',rarity:'wild',fact:'Truckloads of bananas have set off radiation portal monitors built to catch smuggled nuclear material, because their combined potassium-40 is enough to trip the detectors.',quip:'Border security, foiled again by produce.',sourceName:'Banana equivalent dose, Wikipedia',sourceUrl:'https://en.wikipedia.org/wiki/Banana_equivalent_dose'},
+  {id:'banana-floats',category:'Science',rarity:'surprising',fact:'A whole banana floats because its mix of fibrous tissue, water, and gas-filled pockets makes it slightly less dense than water. As it ripens it forms more air pockets and floats even more readily.',quip:'Technically buoyant. Spiritually still a banana.',sourceName:'pH of Banana, Do Bananas Float in Water',sourceUrl:'https://phofbanana.com/do-bananas-float-in-water/'},
+  {id:'ethylene-paper-bag',category:'Science',rarity:'common',fact:'The brown-paper-bag ripening trick works because the bag traps the ethylene gas the banana itself gives off, which drives the conversion of starch to sugar while still letting moisture escape.',quip:'The banana ripens itself; the bag just keeps the secret.',sourceName:'Tasting Table',sourceUrl:'https://www.tastingtable.com/1940755/science-of-ripen-fruit-brown-paper-bag/'},
+  {id:'ig-nobel-friction',category:'Science',rarity:'surprising',fact:'The 2014 Ig Nobel Prize in Physics went to a team at Kitasato University that measured the friction of a banana peel underfoot, on the shoe and on the floor.',quip:'Peer review confirmed what every cartoon already knew.',sourceName:'Improbable Research, Ig Nobel winners',sourceUrl:'https://improbable.com/ig/winners/'},
+  {id:'peel-near-teflon',category:'Science',rarity:'wild',fact:'A banana peel stepped on inner-side-down has a coefficient of friction of about 0.07 on linoleum, close to the slipperiness of Teflon at around 0.04 and ice at around 0.05.',quip:'Nearly Teflon. The fruit was just showing off.',sourceName:'Tribology Online, primary paper',sourceUrl:'https://www.jstage.jst.go.jp/article/trol/7/3/7_147/_pdf'},
+  {id:'b6-not-potassium',category:'Nutrition',rarity:'surprising',fact:"Vitamin B6 is where a banana actually shines. One medium fruit supplies about 0.44 mg, roughly a quarter of the daily value, a larger share of a day's need than its potassium provides.",quip:'B6. The vitamin nobody put on the poster.',sourceName:'USDA FoodData Central (FDC 173944)',sourceUrl:'https://fdc.nal.usda.gov/food-details/173944/nutrients'},
+  {id:'out-potassiumed-by-potato',category:'Nutrition',rarity:'surprising',fact:"A banana is not a standout potassium food. A medium potato at 610 mg, watermelon, cooked spinach, beets, and half an avocado all beat a banana's roughly 422 mg per serving.",quip:'Out-potassiumed by a potato. The mascot lost to the crowd.',sourceName:'Patricia Bannan, MS, RDN',sourceUrl:'https://www.patriciabannan.com/blog/nutrition/5-foods-that-are-higher-in-potassium-than-a-banana/'},
+  {id:'green-banana-starch',category:'Nutrition',rarity:'surprising',fact:"A green banana is mostly starch, 12 to 35 percent of the pulp's fresh weight, which falls to under 1 percent when fully ripe as it converts to sugar.",quip:'A green banana is a potato in witness protection.',sourceName:'Frontiers in Plant Science, 2019',sourceUrl:'https://pmc.ncbi.nlm.nih.gov/articles/PMC6454214/'},
+  {id:'resistant-starch-undercount',category:'Nutrition',rarity:'wild',fact:'A green banana holds so much resistant starch that standard fiber lab methods miss it. A method that captures it reads about 18 g per 100 g of fiber when unripe, versus about 2 g once ripe, while the traditional method reads about 2 g at every stage.',quip:'The old method just shrugged and wrote down two.',sourceName:'PLOS One, Phillips et al. 2021',sourceUrl:'https://pmc.ncbi.nlm.nih.gov/articles/PMC8266066/'},
+  {id:'gi-doubles',category:'Nutrition',rarity:'surprising',fact:"Ripening roughly doubles a banana's glycemic index, from about 30 when green to around 51 when spotted, because resistant starch converts to simple sugars.",quip:'Same fruit, double the trouble, zero remorse.',sourceName:'Foodstruct, banana glycemic index',sourceUrl:'https://foodstruct.com/food/bananas/glycemic-index'},
+  {id:'comedian-2024-sale',category:'Culture',rarity:'wild',fact:"Maurizio Cattelan's duct-taped banana artwork Comedian sold for about 6.2 million dollars at Sotheby's in November 2024, though the actual banana was bought from a Manhattan street vendor for 25 cents.",quip:'The vendor should renegotiate.',sourceName:'The Art Newspaper',sourceUrl:'https://www.theartnewspaper.com/2024/11/21/maurizio-cattelan-banana-sothebys-6-million-auction-comedian'},
+  {id:'comedian-datuna-ate-it',category:'Culture',rarity:'wild',fact:'When Comedian debuted at Art Basel Miami Beach in 2019, performance artist David Datuna pulled it off the wall and ate it, titling the act Hungry Artist. The gallery simply taped up a new banana.',quip:'The gallery restocked. It was a produce problem, not a crime.',sourceName:'Designboom',sourceUrl:'https://www.designboom.com/art/maurizio-cattelan-banana-art-basel-miami-12-06-2019/'},
+  {id:'warhol-peel-sticker',category:'Culture',rarity:'surprising',fact:"Andy Warhol's banana on the 1967 Velvet Underground and Nico album cover was a peel-off sticker. Removing it revealed a pink banana underneath the instruction Peel slowly and see.",quip:'Album cover with a tutorial. Most do not require one.',sourceName:'The Velvet Underground and Nico, Wikipedia',sourceUrl:'https://en.wikipedia.org/wiki/The_Velvet_Underground_%26_Nico'},
+  {id:'bananaman-1980',category:'Culture',rarity:'surprising',fact:'Bananaman first appeared on 16 February 1980 as Eric Wimp, a schoolboy at 29 Acacia Road who turns into a muscled superhero by eating a banana, a parody of Superman and Batman.',quip:'His mother was right about the potassium.',sourceName:'Bananaman, Wikipedia',sourceUrl:'https://en.wikipedia.org/wiki/Bananaman'},
+  {id:'bananas-in-pyjamas',category:'Culture',rarity:'surprising',fact:"The Bananas in Pyjamas characters B1 and B2 grew out of a 1967 nursery song written by Carey Blyton, nephew of author Enid Blyton; the TV show debuted on Australia's ABC in 1992.",quip:'Twenty-five years from nursery song to fully dressed produce.',sourceName:'Bananas in Pyjamas, Wikipedia',sourceUrl:'https://en.wikipedia.org/wiki/Bananas_in_Pyjamas'},
+  {id:'banana-ketchup-orosa',category:'Culture',rarity:'wild',fact:'Banana ketchup was invented by Filipina food chemist Maria Y. Orosa, who used saba bananas as a tomato substitute and created roughly 700 recipes. She died of shrapnel wounds in 1945 during the Battle of Manila.',quip:'Seven hundred recipes. Your fridge has condiments older than that.',sourceName:'Maria Y. Orosa, Wikipedia',sourceUrl:'https://en.wikipedia.org/wiki/Maria_Orosa'},
+  {id:'blue-java',category:'Culture',rarity:'wild',fact:'The Blue Java or ice cream banana has soft flesh widely described as tasting like vanilla custard, and its unripe fruit looks silvery-blue from a heavy wax coat.',quip:'Dessert that ripens on a tree and skips the freezer.',sourceName:'Blue Java banana, Wikipedia',sourceUrl:'https://en.wikipedia.org/wiki/Blue_Java_banana'},
+  {id:'largest-bunch-473',category:'Records',rarity:'wild',fact:'The largest bunch of bananas on record held 473 individual fruits and weighed 130 kg, grown in the Canary Islands in 2001, and it remains unbeaten.',quip:'Retired, undefeated, since 2001.',sourceName:'Guinness World Records',sourceUrl:'https://www.guinnessworldrecords.com/world-records/largest-bunch-of-bananas'},
+  {id:'longest-split-8040m',category:'Records',rarity:'wild',fact:'The longest banana split ever made stretched 8,040 meters, about 5 miles, in Innisfail, Australia, in 2017, using roughly 40,000 bananas.',quip:'Five miles of dessert. The far end melted, probably.',sourceName:'Guinness World Records',sourceUrl:'https://www.guinnessworldrecords.com/world-records/68443-longest-banana-split'},
+  {id:'big-banana-sculpture',category:'Records',rarity:'surprising',fact:'The largest banana sculpture is the 13-meter Big Banana in Coffs Harbour, Australia, built from timber and ferroconcrete and unveiled in 1964.',quip:'Made of concrete in 1964. Still not ripe.',sourceName:'Guinness World Records',sourceUrl:'https://www.guinnessworldrecords.com/world-records/772372-largest-sculpture-of-a-banana'},
+  {id:'bertoletti-8',category:'Records',rarity:'surprising',fact:'The record for most bananas peeled and eaten in one minute is 8, set by competitive eater Patrick Bertoletti in 2012, about one banana every 7.5 seconds.',quip:'Chew accordingly.',sourceName:'Guinness World Records',sourceUrl:'https://www.guinnessworldrecords.com/world-records/most-bananas-peeled-and-eaten-in-one-minute'},
+  {id:'india-largest-producer',category:'Records',rarity:'surprising',fact:"India is the world's largest banana producer, growing about 36.6 million tonnes in 2023, roughly a quarter of the global total, yet it exports almost none of it.",quip:'They keep all of them. Reasonable.',sourceName:'FAO 2023 data via FreshPlaza',sourceUrl:'https://www.freshplaza.com/north-america/article/9452797/india-is-largest-banana-producer-ecuador-and-philippines-rule-the-global-market/'},
+  {id:'ecuador-largest-exporter',category:'Records',rarity:'surprising',fact:"Ecuador is the world's largest banana exporter, shipping roughly a quarter of all banana exports, despite ranking only about fifth in production.",quip:'Punching above its weight, then shipping it.',sourceName:'FAO Banana Market Review via FreshPlaza',sourceUrl:'https://www.freshplaza.com/north-america/article/9452797/india-is-largest-banana-producer-ecuador-and-philippines-rule-the-global-market/'},
+  {id:'top-banana-burlesque',category:'Language',rarity:'surprising',fact:'Top banana and second banana come from American burlesque, where the lead, supporting, and third comics were ranked as First, Second, and Third Banana. Banana meant the comic.',quip:'Third Banana: the worst possible thing to be called.',sourceName:'Word Histories, top banana origin',sourceUrl:'https://wordhistories.net/2018/07/04/top-banana-origin/'},
+  {id:'top-banana-musical-1951',category:'Language',rarity:'wild',fact:'The phrase top banana was cemented by the 1951 Broadway musical Top Banana, a star vehicle for Phil Silvers that won him the 1952 Tony for Best Leading Actor in a Musical.',quip:'Won a Tony for produce-based career advice.',sourceName:'Top Banana (musical), Wikipedia',sourceUrl:'https://en.wikipedia.org/wiki/Top_Banana_(musical)'},
+  {id:'bananas-means-crazy-1968',category:'Language',rarity:'surprising',fact:'Bananas meaning crazy can be reliably traced in print only to 1968, when a slang survey reported Kentucky college students using it for excited and wild, far later than most people assume.',quip:'Younger than the moon landing, somehow.',sourceName:'The Straight Dope',sourceUrl:'https://www.straightdope.com/21344487/how-did-em-nuts-em-and-em-bananas-em-come-to-mean-crazy'},
+  {id:'banana-word-1590s',category:'Language',rarity:'surprising',fact:'The English word banana is first attested in the 1590s and was borrowed through Spanish or Portuguese from a West African source, because European sailors met the fruit on the West African coast.',quip:'Older than most countries that now sell it.',sourceName:'Online Etymology Dictionary',sourceUrl:'https://www.etymonline.com/word/banana'},
+  {id:'wolof-vs-arabic',category:'Language',rarity:'surprising',fact:'The origin of the word banana is contested. The leading theory traces it to the Wolof word banaana, while a rival proposal points to the Arabic banan, meaning finger; neither is proven.',quip:'Two theories, one fruit shaped like a finger anyway.',sourceName:'Janga Wolof',sourceUrl:'https://jangawolof.org/2025/01/10/the-possible-wolof-origins-of-the-word-banana/'},
+  {id:'banana-republic-coined',category:'Language',rarity:'surprising',fact:'The term banana republic was popularized by writer O. Henry, who used it in a 1901 story and his 1904 book Cabbages and Kings to describe a fictional Central American country modeled on Honduras.',quip:'The clothing store came later, and uninvited.',sourceName:'Merriam-Webster, History of Banana Republic',sourceUrl:'https://www.merriam-webster.com/wordplay/banana-republic-word-history'},
+  {id:'abaca-not-cannabis',category:'Oddities',rarity:'surprising',fact:'Abaca, the banana species Musa textilis used for Manila hemp, is not related to cannabis hemp at all. It is a true banana endemic to the Philippines, prized for salt-resistant marine rope.',quip:'Named hemp, related to bananas. Nobody checked the paperwork.',sourceName:'Abaca, Wikipedia',sourceUrl:'https://en.wikipedia.org/wiki/Abac%C3%A1'},
+  {id:'yen-banknotes-abaca',category:'Oddities',rarity:'wild',fact:'Japanese yen banknotes are made partly from abaca, a banana-plant fiber, blended with mitsumata bark.',quip:'Money does grow on trees. Specifically banana ones.',sourceName:'Edge Davao, Abaca and the Japanese',sourceUrl:'https://edgedavao.net/vantage-points/2016/12/fast-backward-abaca-japanese/'},
+  {id:'banana-spider-priapism',category:'Oddities',rarity:'wild',sensitive:true,fact:'A toxin from the Brazilian wandering spider, one of the spiders called the banana spider, causes prolonged painful erections and is studied as a lead for erectile-dysfunction drugs.',quip:'Read the side effects, then read them again, slowly.',sourceName:'Toxicon, Leite et al. 2012, via PubMed',sourceUrl:'https://pubmed.ncbi.nlm.nih.gov/22750220/'},
+  {id:'gros-michel-flavor-myth',category:'Oddities',rarity:'surprising',fact:'The story that artificial banana flavor tastes like the extinct Gros Michel is a myth. Isoamyl acetate is a simple compound synthesized in the 1800s, not modeled on any cultivar, and Gros Michel is not even truly extinct.',quip:'Chemists invented it. The banana was not consulted.',sourceName:'Gros Michel, Wikipedia',sourceUrl:'https://en.wikipedia.org/wiki/Gros_Michel'},
+  {id:'st-louis-peel-ban-1909',category:'Oddities',rarity:'wild',fact:'Discarded banana peels were a real urban hazard once blamed for broken limbs, and St. Louis banned tossing them in public in 1909.',quip:'Outlawed in St. Louis. The fruit had a record.',sourceName:'Today I Found Out',sourceUrl:'http://www.todayifoundout.com/index.php/2013/11/origin-slipping-banana-peel-comedy-gag/'},
+  {id:'bed-origin',category:'Oddities',rarity:'surprising',fact:'The banana equivalent dose, a way to explain tiny radiation doses, was coined in 1995 by nuclear scientist Gary Mansfield in a post to a radiation-safety mailing list. It is a teaching device, never a formal unit.',quip:'Born on a mailing list, never invited to the SI table.',sourceName:'Banana equivalent dose, Wikipedia',sourceUrl:'https://en.wikipedia.org/wiki/Banana_equivalent_dose'}
+];
+
+const MYTHS = [
+  {myth:'We share 50 percent of our DNA with bananas.',why:'The real figure is about 60 percent of human genes having a banana counterpart, with those proteins only about 40 percent identical. Coding genes are a small fraction of total DNA, so the 50-percent-of-DNA framing is false. Kept the corrected version as a fact instead.'},
+  {myth:'Artificial banana flavor was modeled on the extinct Gros Michel banana.',why:'Isoamyl acetate is a simple compound that predates the cultivar question and was not based on any banana variety. Gros Michel is also not truly extinct, only commercially displaced. Kept as a debunk fact.'},
+  {myth:'Banana peels whiten teeth.',why:'No study supports it, and a 2022 bovine-enamel trial found banana peel produced no whitening. Dropped the entry entirely rather than imply the hack works.'},
+  {myth:'TR4 was officially reclassified as the species Fusarium odoratissimum in 2019.',why:'It was a contested 2019 proposal, challenged in 2021 and not broadly adopted; most phytopathologists still call it Fusarium oxysporum f. sp. cubense. The clean fact was too thin and the quip leaned on the overstatement, so it was cut.'},
+  {myth:'The Cavendish is 99 percent of all bananas.',why:'The 99 percent figure is specifically exports to developed markets. Cavendish is only about 47 percent of total global production. Kept the corrected scope as a fact.'},
+  {myth:'Overripe bananas sink because ripening makes them denser.',why:'Backwards. Ripening creates more air pockets, so riper bananas float more readily, not less. Corrected the direction in the buoyancy fact.'},
+  {myth:'The Velvet Underground lost its banana copyright suit because Warhol used a public-domain image and never registered it.',why:'The 2012 case was actually dismissed on mootness after the Warhol Foundation pledged never to sue the band; the public-domain rationale appears nowhere in the ruling. The quip rode that false premise, so the entry was cut.'}
+];
+
+const ORDER = ['Botany','Genetics','History','Science','Nutrition','Culture','Records','Language','Oddities'];
+const esc = (s) => s.replace(/[&<>]/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+
+let activeCat = 'all';
+let showSensitive = false;
+let query = '';
+
+function stats() {
+  const total = FACTS.length;
+  const flagged = FACTS.filter(f => f.sensitive).length;
+  document.getElementById('stats').innerHTML =
+    `<span class="stat"><b>${total}</b> facts</span>` +
+    `<span class="stat"><b>9</b> categories</span>` +
+    `<span class="stat"><b>${flagged}</b> flagged</span>` +
+    `<span class="stat">122 researched, 62 cut, 7 myths caught</span>`;
+}
+
+function visible() {
+  return FACTS.filter(f => {
+    if (!showSensitive && f.sensitive) return false;
+    if (activeCat !== 'all' && f.category !== activeCat) return false;
+    if (query && !(f.fact + ' ' + f.quip).toLowerCase().includes(query)) return false;
+    return true;
+  });
+}
+
+function cardHTML(f) {
+  return `<div class="card">
+    <div class="card-top">
+      <span class="rarity r-${f.rarity}">${f.rarity}</span>
+      <span class="cat">${f.category}</span>
+      ${f.sensitive ? '<span class="flag">flagged</span>' : ''}
+    </div>
+    <p class="fact">${esc(f.fact)}</p>
+    <p class="quip">${esc(f.quip)}</p>
+    <p class="src"><a href="${f.sourceUrl}" target="_blank" rel="noopener">${esc(f.sourceName)} &#8599;</a></p>
+  </div>`;
+}
+
+function render() {
+  const items = visible();
+  const list = document.getElementById('list');
+  if (!items.length) { list.innerHTML = '<p class="empty">Nothing matches.</p>'; return; }
+  let html = '';
+  for (const cat of ORDER) {
+    const group = items.filter(f => f.category === cat);
+    if (!group.length) continue;
+    html += `<div class="group-h">${cat}, ${group.length}</div><div class="grid">`;
+    html += group.map(cardHTML).join('');
+    html += '</div>';
+  }
+  list.innerHTML = html;
+}
+
+function renderMyths() {
+  let html = '<h2>🚫 Myths the curator rejected</h2>' +
+    '<p class="lead">Proof the fact-check pass did its job: popular banana claims that are false or overstated. Each was corrected into an accurate fact or dropped.</p>';
+  html += MYTHS.map(m => `<div class="myth"><p class="m">${esc(m.myth)}</p><p class="w">${esc(m.why)}</p></div>`).join('');
+  document.getElementById('myths').innerHTML = html;
+}
+
+document.getElementById('flagNote').innerHTML =
+  '<b>2 facts are flagged sensitive</b> (the Brazilian wandering spider toxin and the 1928 Banana Massacre). They are excluded from the default random-drop pool in code so they cannot surface unprompted in a family-rated app. Toggle "show flagged" above to read them. Your call whether a Facts section opts them in.';
+
+document.querySelectorAll('.chip').forEach(chip => {
+  chip.addEventListener('click', () => {
+    document.querySelectorAll('.chip').forEach(c => c.setAttribute('aria-pressed', 'false'));
+    chip.setAttribute('aria-pressed', 'true');
+    activeCat = chip.dataset.cat;
+    render();
+  });
+});
+document.getElementById('showSensitive').addEventListener('change', (e) => { showSensitive = e.target.checked; render(); });
+document.getElementById('search').addEventListener('input', (e) => { query = e.target.value.toLowerCase().trim(); render(); });
+
+stats();
+render();
+renderMyths();
+</script>
+</body>
+</html>
