@@ -43,8 +43,8 @@ On weak areas: explain steps, show me which buttons to click, don't assume I kno
 ## Where things live
 
 - Mobile repo (this one): https://github.com/harnischllc/gobananas
-- Website repo (Astro + CF Workers, hosts privacy + support): https://github.com/harnischllc/bananascanner-website
-- Live site: https://bananascanner.com (privacy at /privacy, support at /support). Domain registered at Cloudflare Registrar (2026-05-24).
+- Website repo (Astro + CF Workers, hosts privacy + support + banana facts): https://github.com/harnischllc/bananascanner-website
+- Live site: https://bananascanner.com (privacy at /privacy, support at /support, banana facts at /facts). Domain registered at Cloudflare Registrar (2026-05-24).
 - App Store Connect app ID: 6772261640 (team: Harnisch LLC). Privacy URL set to https://bananascanner.com/privacy.
 - TestFlight groups: "Beta Bananas" (external, public join link active), "Team (Expo)" (internal)
 - Google Play Console: legal entity HARNISCH LLC, public developer name "Loggerhead Creative", developer account ID 5066870933361555224, app ID 4973024295102408133, package `com.harnischllc.gobananas`. The Loggerhead Creative dev account is owned by a separate Google account from harnischllc@gmail.com — switch profile to reach it. Privacy URL updated to https://bananascanner.com/privacy on 2026-05-24 (staged, not yet sent to Google for review).
