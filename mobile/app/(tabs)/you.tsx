@@ -26,16 +26,17 @@ import {
   evaluateClaim,
   loadStreak,
 } from '../../lib/streak';
+import { loadConsent, setConsent } from '../../lib/corrections';
 
 /**
- * Stub for v1. Real surfaces this will hold:
- *  - Corrections opt-in (the feedback loop toggle)
- *  - Notifications (peak-banana reminders, eventually)
- *  - About / version / open-source credits
- *  - Eventually: account, streaks, share-with-roommate
+ * Settings for v1. Surfaces:
+ *  - Corrections opt-in: persisted consent for the anonymous corrections
+ *    loop (lib/corrections). When on, correcting a stage on a result sends
+ *    the hue and stages to the backend.
+ *  - Game speed: ripening pace for the next bunch.
+ *  - About / version / links.
  *
- * For the demo build the toggle does nothing — it's there to anchor the
- * conversation about how the consent UX should feel, not to ship a feature.
+ * Eventually: notifications, account, share-with-roommate.
  */
 function AboutLink({ label, url }: { label: string; url: string }) {
   return (
@@ -68,6 +69,7 @@ export default function YouScreen() {
     (async () => {
       const prefs = await loadPrefs();
       setGameSpeed(prefs.default_game_speed);
+      setOptIn(await loadConsent());
     })();
   }, []);
 
@@ -96,6 +98,11 @@ export default function YouScreen() {
   const handleSelectSpeed = async (speed: GameSpeed) => {
     setGameSpeed(speed);
     await setDefaultGameSpeed(speed);
+  };
+
+  const handleToggleOptIn = async (on: boolean) => {
+    setOptIn(on);
+    await setConsent(on);
   };
 
   const openRewards = () => {
@@ -183,7 +190,7 @@ export default function YouScreen() {
               </View>
               <Switch
                 value={optIn}
-                onValueChange={setOptIn}
+                onValueChange={handleToggleOptIn}
                 trackColor={{ false: colors.line, true: colors.accent }}
                 thumbColor="#fff"
               />
@@ -196,8 +203,9 @@ export default function YouScreen() {
             </View>
           </View>
           <Text style={styles.note}>
-            Coming soon: anonymous corrections will help tune the algorithm.
-            Toggle on to opt in early.
+            On by choice. When it's on, correcting a stage on a result sends
+            just the hue and the stages, never a photo or an account, to help
+            tune the algorithm.
           </Text>
         </View>
 

@@ -57,6 +57,16 @@ export async function clearHistory(): Promise<void> {
   await AsyncStorage.removeItem(KEY);
 }
 
+/** Set (or change) the user's stage correction on an existing record. */
+export async function updateScanCorrection(
+  id: string,
+  corrected: Stage,
+): Promise<void> {
+  const existing = await loadHistory();
+  const next = existing.map((r) => (r.id === id ? { ...r, corrected } : r));
+  await AsyncStorage.setItem(KEY, JSON.stringify(next));
+}
+
 /**
  * Two-line time format for HistoryRow.
  *   < 1 min   → { primary: 'Just now' }

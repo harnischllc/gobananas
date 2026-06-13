@@ -7,7 +7,6 @@ import {
   Image,
   Pressable,
   Share,
-  Linking,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -20,16 +19,21 @@ import {
   ratingFromStage,
   ratingLabel,
 } from '../lib/stages';
-import { ScanRecord, loadHistory } from '../lib/history';
+import { ScanRecord, loadHistory, updateScanCorrection } from '../lib/history';
 import { StageDot } from '../components/StageDot';
 import { DancingBanana } from '../components/DancingBanana';
 import { BananaRating } from '../components/BananaRating';
 import { colors, radius, space } from '../lib/theme';
+import { loadConsent, sendCorrection } from '../lib/corrections';
+
+const ALL_STAGES: Stage[] = [1, 2, 3, 4, 5, 6, 7];
 
 export default function ResultScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const [record, setRecord] = useState<ScanRecord | null>(null);
+  const [consentOn, setConsentOn] = useState(false);
+  const [editing, setEditing] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -37,6 +41,10 @@ export default function ResultScreen() {
       setRecord(all.find((r) => r.id === id) ?? null);
     })();
   }, [id]);
+
+  useEffect(() => {
+    loadConsent().then(setConsentOn);
+  }, []);
 
   if (!record) {
     return (
@@ -58,18 +66,18 @@ export default function ResultScreen() {
     }
   };
 
-  const handleReportMisclassification = () => {
-    const subject = encodeURIComponent('Go Bananas misclassification');
-    const body = encodeURIComponent(
-      `The app called my banana Stage ${record.stage} (${def.label}).\n` +
-        `Hue: ${Math.round(record.hue)}°\n` +
-        `Confidence: ${Math.round(record.confidence)}%\n\n` +
-        `I'd actually call it stage: \n\n` +
-        `If you can, attach a screenshot of the result screen so the diagnostic data goes along with this.\n`,
-    );
-    Linking.openURL(
-      `mailto:feedback@bananascanner.com?subject=${subject}&body=${body}`,
-    );
+  const handleCorrect = async (stage: Stage) => {
+    if (!record) return;
+    setRecord({ ...record, corrected: stage });
+    setEditing(false);
+    await updateScanCorrection(record.id, stage);
+    await sendCorrection({
+      predictedStage: record.stage,
+      correctedStage: stage,
+      hue: record.hue,
+      confidence: record.confidence,
+      demo: record.demo,
+    });
   };
 
   return (
@@ -158,38 +166,75 @@ export default function ResultScreen() {
           ))}
         </View>
 
-        {/*
-          TEMPORARY: TestFlight calibration diagnostic. Lets Eric report
-          the detected hue alongside the visual ripeness of the banana so
-          we can retune the Stage hue ranges in lib/stages.ts. Remove this
-          card and the related styles before App Store submission.
-        */}
-        <View style={[styles.card, styles.diagCard]}>
-          <Text style={styles.diagBadge}>TEST · ALGORITHM DIAGNOSTIC</Text>
+        <View style={styles.card}>
+          <Text style={styles.cardTitle}>Wrong stage?</Text>
           <Text style={styles.diagLine}>
-            Hue:{' '}
-            <Text style={styles.diagValue}>{Math.round(record.hue)}°</Text>
-            {'   '}·{'   '}Stage:{' '}
-            <Text style={styles.diagValue}>{record.stage}</Text>
-            {'   '}·{'   '}Confidence:{' '}
-            <Text style={styles.diagValue}>{Math.round(record.confidence)}%</Text>
+            Hue <Text style={styles.diagValue}>{Math.round(record.hue)}°</Text>
+            {'   ·   '}called{' '}
+            <Text style={styles.diagValue}>Stage {record.stage}</Text>
+            {'   ·   '}
+            <Text style={styles.diagValue}>
+              {Math.round(record.confidence)}%
+            </Text>
           </Text>
-          <Text style={styles.diagHelp}>
-            If this rating feels off, tap Report below. Helps tune the
-            algorithm.
-          </Text>
-          <Pressable
-            onPress={handleReportMisclassification}
-            accessibilityRole="button"
-            accessibilityLabel="Report misclassification by email"
-            style={({ pressed }) => [
-              styles.reportBtn,
-              pressed && { opacity: 0.7 },
-            ]}
-          >
-            <Ionicons name="mail-outline" size={15} color={colors.ink} />
-            <Text style={styles.reportBtnLabel}>Report misclassification</Text>
-          </Pressable>
+
+          {record.corrected && !editing ? (
+            <View style={styles.correctDone}>
+              <Text style={styles.correctThanks}>
+                Logged as Stage {record.corrected} ·{' '}
+                {STAGES[record.corrected].label}.{' '}
+                {consentOn
+                  ? 'Sent anonymously to help tune the algorithm.'
+                  : 'Saved on your device only.'}
+              </Text>
+              <Pressable
+                onPress={() => setEditing(true)}
+                accessibilityRole="button"
+                accessibilityLabel="Change your correction"
+                hitSlop={8}
+                style={({ pressed }) => pressed && { opacity: 0.6 }}
+              >
+                <Text style={styles.correctChange}>Change</Text>
+              </Pressable>
+            </View>
+          ) : (
+            <>
+              <Text style={styles.correctBody}>
+                If that looks off, tap the stage it actually is.
+              </Text>
+              <View style={styles.correctOptions}>
+                {ALL_STAGES.filter((s) => s !== record.stage).map((s) => (
+                  <Pressable
+                    key={s}
+                    onPress={() => handleCorrect(s)}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Mark as Stage ${s}, ${STAGES[s].label}`}
+                    style={({ pressed }) => [
+                      styles.correctChip,
+                      pressed && { opacity: 0.6 },
+                    ]}
+                  >
+                    <View
+                      style={[
+                        styles.correctDot,
+                        { backgroundColor: STAGES[s].color },
+                      ]}
+                    />
+                    <Text style={styles.correctChipLabel}>
+                      {STAGES[s].label}
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
+              {!consentOn && (
+                <Text style={styles.correctHint}>
+                  Sharing is off, so this only saves on your phone. Turn on
+                  "Send anonymous corrections" in the You tab to help tune the
+                  algorithm.
+                </Text>
+              )}
+            </>
+          )}
         </View>
 
       </ScrollView>
@@ -359,20 +404,6 @@ const styles = StyleSheet.create({
     color: colors.ink,
     lineHeight: 22,
   },
-  // TEMPORARY diagnostic styles — remove with the diagnostic card before
-  // App Store submission.
-  diagCard: {
-    borderStyle: 'dashed',
-    borderColor: colors.inkSoft,
-    backgroundColor: 'transparent',
-  },
-  diagBadge: {
-    fontSize: 10,
-    fontWeight: '800',
-    color: colors.inkSoft,
-    letterSpacing: 1.4,
-    marginBottom: 8,
-  },
   diagLine: {
     fontSize: 13,
     color: colors.ink,
@@ -383,29 +414,59 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: colors.ink,
   },
-  diagHelp: {
-    fontSize: 11,
+  correctBody: {
+    fontSize: 13,
     color: colors.inkSoft,
-    marginTop: 8,
-    fontStyle: 'italic',
-    lineHeight: 16,
+    marginTop: 10,
+    lineHeight: 18,
   },
-  reportBtn: {
+  correctOptions: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginTop: 12,
+  },
+  correctChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    alignSelf: 'flex-start',
-    marginTop: 10,
+    gap: 7,
     paddingVertical: 8,
     paddingHorizontal: 12,
     borderRadius: radius.pill,
     borderWidth: 1,
-    borderColor: colors.inkSoft,
+    borderColor: colors.line,
     backgroundColor: colors.card,
   },
-  reportBtnLabel: {
+  correctDot: {
+    width: 11,
+    height: 11,
+    borderRadius: 6,
+  },
+  correctChipLabel: {
     fontSize: 12.5,
     fontWeight: '600',
     color: colors.ink,
+  },
+  correctHint: {
+    fontSize: 11.5,
+    color: colors.inkSoft,
+    marginTop: 12,
+    fontStyle: 'italic',
+    lineHeight: 16,
+  },
+  correctDone: {
+    marginTop: 10,
+    gap: 8,
+    alignItems: 'flex-start',
+  },
+  correctThanks: {
+    fontSize: 13.5,
+    color: colors.ink,
+    lineHeight: 19,
+  },
+  correctChange: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: colors.brown,
   },
 });

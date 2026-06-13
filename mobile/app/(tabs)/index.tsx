@@ -30,6 +30,9 @@ import {
 } from '../../lib/pet';
 import { colors, radius, space } from '../../lib/theme';
 import { RewardsCard } from '../../components/RewardsCard';
+import { FactCard } from '../../components/FactCard';
+import { pickNextFact } from '../../lib/factPick';
+import { type BananaFact } from '../../lib/bananaFacts';
 import { evaluateClaim, loadStreak } from '../../lib/streak';
 import { loadCollection } from '../../lib/drops';
 
@@ -41,6 +44,7 @@ export default function ScanHome() {
   const [streakCurrent, setStreakCurrent] = useState(0);
   const [canClaim, setCanClaim] = useState(false);
   const [collectionCount, setCollectionCount] = useState(0);
+  const [fact, setFact] = useState<BananaFact | null>(null);
 
   const refresh = useCallback(async () => {
     setRecent((await loadHistory()).slice(0, 3));
@@ -95,6 +99,13 @@ export default function ScanHome() {
       handleScanRef.current();
     });
     return () => sub.remove();
+  }, []);
+
+  // One random banana fact per app open, honoring the recently-seen cooldown
+  // so facts don't repeat for a while. Mount-only: a fresh fact appears on
+  // launch, not every time the home tab regains focus.
+  useEffect(() => {
+    pickNextFact().then(setFact);
   }, []);
 
   const handleScan = useCallback(async () => {
@@ -170,12 +181,17 @@ export default function ScanHome() {
           </Pressable>
         </View>
 
+        <ScanCard onScan={handleScan} busy={busy} />
+
         {bunch !== null && !bunchOver(bunch) ? (
           <Pressable
             onPress={() => router.push('/bananas')}
             accessibilityRole="button"
             accessibilityLabel={`${bunch.name}, tap to tend the bunch`}
-            style={({ pressed }) => pressed && { opacity: 0.93 }}
+            style={({ pressed }) => [
+              styles.bunchActiveWrap,
+              pressed && { opacity: 0.93 },
+            ]}
           >
             <PetBananaCard bunch={bunch} />
           </Pressable>
@@ -204,7 +220,7 @@ export default function ScanHome() {
           </Pressable>
         )}
 
-        <ScanCard onScan={handleScan} busy={busy} />
+        <FactCard fact={fact} />
 
         <View style={styles.sectionHead}>
           <Text style={styles.sectionTitle}>DAILY CRATE</Text>
@@ -399,6 +415,9 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: colors.inkSoft,
     marginTop: 2,
+  },
+  bunchActiveWrap: {
+    marginTop: space.sm,
   },
   bunchPrompt: {
     flexDirection: 'row',
