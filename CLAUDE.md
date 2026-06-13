@@ -52,7 +52,7 @@ On weak areas: explain steps, show me which buttons to click, don't assume I kno
 - EAS project: linked via `eas init` (commit `7a15e3d`). `appVersionSource: local` — bump `app.json` `ios.buildNumber` (and `android.versionCode` when shipping Android) BEFORE each `npm run ship:ios` / `ship:android`. Remote source was tried 2026-05-24 and got stuck on 4 across multiple builds; reverted to local in commit `79c0476`. Use `npm run ship:ios` / `ship:android` / `ship` from `mobile/` to build + auto-submit in one command.
 - EAS submit: iOS uses `apple@aqueroministries.org` (team `TA777BLD49`); Android uses Play service account JSON at `/Users/ericharnisch/.config/eas/harnisch-llc-play-service-account.json`, track `internal`, releaseStatus `draft`.
 - Render service: fully shut down 2026-05-24.
-- Feedback email for testers: info@harnischllc.com (matches the bananascanner.com privacy + support pages; updated 2026-05-24, replaces the earlier eric.harnisch@gmail.com decision)
+- Feedback email for testers: the bananascanner.com site uses feedback@bananascanner.com (general) and beta@bananascanner.com (beta requests), both forwarding to info@harnischllc.com. Eric can send/reply as either branded address via Gmail "Send mail as" over Resend SMTP (set up 2026-06-12; recipe in Open Brain). Replaces the earlier info@/eric.harnisch@gmail.com notes.
 - Cloudflare account ID (Harnisch LLC): `a73bfcc0f66055f7da62abe390d117c8`
 
 ## Vocabulary
