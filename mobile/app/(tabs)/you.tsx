@@ -119,7 +119,7 @@ export default function YouScreen() {
             You
           </Text>
           <Text style={styles.lede}>
-            v1 doesn't need an account. Settings live here once we have any.
+            No account needed. Your settings and options live here.
           </Text>
         </View>
 
