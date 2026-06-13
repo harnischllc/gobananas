@@ -45,6 +45,8 @@ export interface CorrectionInput {
 
 export async function sendCorrection(c: CorrectionInput): Promise<void> {
   if (!(await loadConsent())) return;
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 8000);
   try {
     await fetch(CORRECTIONS_URL, {
       method: 'POST',
@@ -58,8 +60,11 @@ export async function sendCorrection(c: CorrectionInput): Promise<void> {
         appVersion: Constants.expoConfig?.version ?? 'unknown',
         ts: new Date().toISOString(),
       }),
+      signal: controller.signal,
     });
   } catch {
-    // Offline or backend not deployed yet. Drop it; the local record stays.
+    // Offline, timed out, or backend not up yet. Drop it; the local record stays.
+  } finally {
+    clearTimeout(timeout);
   }
 }

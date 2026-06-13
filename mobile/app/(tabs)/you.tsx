@@ -182,10 +182,9 @@ export default function YouScreen() {
               <View style={{ flex: 1, paddingRight: 12 }}>
                 <Text style={styles.toggleTitle}>Send anonymous corrections</Text>
                 <Text style={styles.toggleSub}>
-                  When you tap "Actually it was Stage X" on a result, we'll
-                  send the predicted hue, predicted stage, and your correction
-                  to help tune the algorithm. No photos, no account, no
-                  tracking.
+                  When this is on and you tap the real stage on a result, we
+                  send the hue and the stages, never a photo or an account, to
+                  help tune the algorithm.
                 </Text>
               </View>
               <Switch

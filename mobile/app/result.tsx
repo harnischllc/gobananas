@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -9,7 +9,7 @@ import {
   Share,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
 import {
@@ -42,9 +42,19 @@ export default function ResultScreen() {
     })();
   }, [id]);
 
-  useEffect(() => {
-    loadConsent().then(setConsentOn);
-  }, []);
+  // Re-read on focus, not just mount, so the share-state text can't go stale
+  // if the toggle is flipped in the You tab while a result is open.
+  useFocusEffect(
+    useCallback(() => {
+      let alive = true;
+      loadConsent().then((v) => {
+        if (alive) setConsentOn(v);
+      });
+      return () => {
+        alive = false;
+      };
+    }, []),
+  );
 
   if (!record) {
     return (
