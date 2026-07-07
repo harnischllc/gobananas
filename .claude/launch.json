@@ -20,6 +20,12 @@
       "runtimeExecutable": "npx",
       "runtimeArgs": ["-y", "serve", "docs/mockups/banana-svg-options", "-p", "8765", "-L", "--no-clipboard"],
       "port": 8765
+    },
+    {
+      "name": "bananascanner-website",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["--prefix", "/Users/ericharnisch/projects/harnischllc/bananascanner-website", "run", "dev"],
+      "port": 4321
     }
   ]
 }
