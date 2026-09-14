@@ -1,4 +1,4 @@
-# Project Context for Claude
+# Project Context for Codex
 
 Read this before any work. If something's not covered here, ask before assuming.
 
