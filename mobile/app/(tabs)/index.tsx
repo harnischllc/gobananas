@@ -152,7 +152,7 @@ export default function ScanHome() {
       // the line is stable on reopen and in the share text. Only real banana
       // readings count toward the day and lifetime tallies.
       let aside: string | undefined;
-      if (!classification.notBanana && !classification.demo) {
+      if (classification.verdict === 'banana' && !classification.demo) {
         const now = new Date();
         const history = await loadHistory();
         const lifetimeCount = (await loadScanCount(history)) + 1;
@@ -169,6 +169,10 @@ export default function ScanHome() {
         confidence: classification.confidence,
         demo: classification.demo,
         notBanana: classification.notBanana || undefined,
+        // Unsure: the result screen asks "Is this a banana?" before showing a stage.
+        unsure: classification.verdict === 'unsure' || undefined,
+        candidateFraction: classification.candidateFraction,
+        satMedian: classification.satMedian ?? undefined,
         aside,
       });
 

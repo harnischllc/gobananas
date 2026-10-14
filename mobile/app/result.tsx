@@ -21,8 +21,10 @@ import {
 } from '../lib/stages';
 import {
   ScanRecord,
+  confirmBananaScan,
   isBananaScan,
   loadHistory,
+  markNotBanana,
   notBananaRunEndingAt,
   updateScanCorrection,
 } from '../lib/history';
@@ -81,6 +83,26 @@ export default function ResultScreen() {
     );
   }
 
+  /** "Not a banana" from the person: the unsure answer, or the chip below the stage picker. */
+  const handleNotBanana = async () => {
+    const updated = await markNotBanana(record.id);
+    if (updated) setRecord(updated);
+  };
+
+  if (record.unsure && !record.notBanana) {
+    return (
+      <QuickCheck
+        record={record}
+        onClose={() => router.back()}
+        onYes={async () => {
+          const updated = await confirmBananaScan(record.id);
+          if (updated) setRecord(updated);
+        }}
+        onNo={handleNotBanana}
+      />
+    );
+  }
+
   if (!isBananaScan(record)) {
     return (
       <OddResult record={record} run={oddRun} onClose={() => router.back()} />
@@ -110,6 +132,8 @@ export default function ResultScreen() {
       rawHue: record.rawHue,
       confidence: record.confidence,
       demo: record.demo,
+      candidateFraction: record.candidateFraction,
+      satMedian: record.satMedian,
     });
 
   const handleCorrect = async (stage: Stage) => {
@@ -188,16 +212,34 @@ export default function ResultScreen() {
         <View style={styles.card}>
           <Text style={styles.cardTitle}>Wrong stage?</Text>
           {/*
-            Diagnostic line: the hue the classifier read and the stage it
-            called. The percentage that used to sit here was the inverted
-            build 14 confidence number; it is gone, not fixed in place.
+            Diagnostic line: the hue the classifier read, how much of the
+            frame was banana-colored, how saturated that was, and the stage
+            it called. The two middle numbers are what diagnose a misread
+            from a screenshot (the keyboard would have printed 26% / 0.11;
+            a banana prints 30-50% / 0.6). The percentage that used to sit
+            here was the inverted build 14 confidence number; it is gone.
           */}
           <Text style={styles.diagLine}>
             Hue{' '}
             <Text style={styles.diagValue}>
               {Math.round(record.rawHue ?? record.hue)}°
             </Text>
-            {'   ·   '}called{' '}
+            {record.candidateFraction !== undefined && (
+              <>
+                {'  ·  '}
+                <Text style={styles.diagValue}>
+                  {Math.round(record.candidateFraction * 100)}%
+                </Text>{' '}
+                of frame
+              </>
+            )}
+            {record.satMedian !== undefined && (
+              <>
+                {'  ·  '}sat{' '}
+                <Text style={styles.diagValue}>{record.satMedian.toFixed(2)}</Text>
+              </>
+            )}
+            {'  ·  '}called{' '}
             <Text style={styles.diagValue}>Stage {record.stage}</Text>
           </Text>
 
@@ -297,6 +339,24 @@ export default function ResultScreen() {
                     </Text>
                   </Pressable>
                 ))}
+                {/*
+                  The honest escape hatch for the lemon, the plate, the
+                  keyboard that still got a stage. Local only: the backend
+                  takes stages 1-7, so this is not sent (follow-up in
+                  bananascanner-website).
+                */}
+                <Pressable
+                  onPress={handleNotBanana}
+                  accessibilityRole="button"
+                  accessibilityLabel="Mark as not a banana"
+                  style={({ pressed }) => [
+                    styles.correctChip,
+                    pressed && { opacity: 0.6 },
+                  ]}
+                >
+                  <Text style={styles.correctChipGlyph}>🙊</Text>
+                  <Text style={styles.correctChipLabel}>Not a banana</Text>
+                </Pressable>
               </View>
             </>
           )}
@@ -321,20 +381,22 @@ function OddResult({
   onClose: () => void;
 }) {
   const notBanana = !!record.notBanana;
-  const escalated = notBanana && run >= NOT_BANANA_ESCALATE_AT;
+  const byUser = record.notBananaBy === 'user';
+  const escalated = notBanana && !byUser && run >= NOT_BANANA_ESCALATE_AT;
 
   const eyebrow = notBanana ? 'NOT A BANANA' : "COULDN'T READ THAT";
-  const title = notBanana ? 'Not a banana.' : 'Couldn’t read that photo.';
+  const title = notBanana ? 'Banana not found.' : 'Couldn’t read that photo.';
   const vibe = !notBanana
     ? 'The camera blinked. Try again?'
-    : escalated
-      ? `${run} in a row. The bananas are starting to worry about you.`
-      : 'Or one in witness protection.';
+    : byUser
+      ? 'Logged. The algorithm has been informed.'
+      : escalated
+        ? `${run} in a row. The bananas are starting to worry about you.`
+        : 'Or one in witness protection.';
   const tips = notBanana
     ? [
-        'Either that was not a banana or it was a very shy one.',
-        'Try again closer, with the banana filling the frame.',
-        'Try it by a window. Dim light hides the color.',
+        'Get closer. Let the banana fill the frame.',
+        'Take it in daylight, by a window. Warm bulbs make everything banana-colored.',
       ]
     : [
         'Take the photo again. If it keeps happening, tell us at bananascanner.com/support.',
@@ -391,6 +453,87 @@ function OddResult({
               · {t}
             </Text>
           ))}
+        </View>
+      </ScrollView>
+    </SafeAreaView>
+  );
+}
+
+/**
+ * The unsure band: the frame is only weakly banana-colored (blown out by a
+ * window, a strong warm cast, a small banana). Ask instead of guessing. Yes
+ * drops into the normal stage result with no caveat; No is a labeled
+ * negative the stage picker could never collect.
+ */
+function QuickCheck({
+  record,
+  onClose,
+  onYes,
+  onNo,
+}: {
+  record: ScanRecord;
+  onClose: () => void;
+  onYes: () => void;
+  onNo: () => void;
+}) {
+  return (
+    <SafeAreaView style={[styles.safe, { backgroundColor: colors.yellowSoft }]}>
+      <ScrollView contentContainerStyle={{ paddingBottom: 40 }}>
+        <View style={styles.topBar}>
+          <Pressable
+            onPress={onClose}
+            accessibilityRole="button"
+            accessibilityLabel="Close result"
+            hitSlop={12}
+            style={({ pressed }) => [styles.iconBtn, pressed && { opacity: 0.6 }]}
+          >
+            <Ionicons name="close" size={22} color={colors.ink} />
+          </Pressable>
+          <View />
+          <View />
+        </View>
+
+        <View style={styles.hero}>
+          <View style={styles.heroBadge}>
+            <Text style={styles.oddGlyph} accessibilityElementsHidden>
+              ❓
+            </Text>
+          </View>
+          <Text style={styles.stageNum}>QUICK CHECK</Text>
+          <Text style={styles.label} accessibilityRole="header">
+            Is this a banana?
+          </Text>
+          <Text style={styles.vibe}>Could be a banana. Could be a lamp.</Text>
+        </View>
+
+        {record.imageUri && (
+          <View style={styles.photoWrap}>
+            <Image
+              source={{ uri: record.imageUri }}
+              style={styles.photo}
+              resizeMode="cover"
+              accessibilityLabel="The photo you scanned."
+            />
+          </View>
+        )}
+
+        <View style={styles.quickButtons}>
+          <Pressable
+            onPress={onYes}
+            accessibilityRole="button"
+            accessibilityLabel="Yes, it's a banana. Show the ripeness result."
+            style={({ pressed }) => [styles.quickPrimary, pressed && { opacity: 0.8 }]}
+          >
+            <Text style={styles.quickPrimaryText}>Yes, it's a banana</Text>
+          </Pressable>
+          <Pressable
+            onPress={onNo}
+            accessibilityRole="button"
+            accessibilityLabel="No, it isn't a banana."
+            style={({ pressed }) => [styles.quickSecondary, pressed && { opacity: 0.6 }]}
+          >
+            <Text style={styles.quickSecondaryText}>No, it isn't</Text>
+          </Pressable>
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -640,6 +783,37 @@ const styles = StyleSheet.create({
     fontSize: 12.5,
     fontWeight: '600',
     color: colors.ink,
+  },
+  correctChipGlyph: {
+    fontSize: 13,
+  },
+  quickButtons: {
+    marginHorizontal: space.md,
+    marginTop: space.lg,
+    gap: 10,
+  },
+  quickPrimary: {
+    backgroundColor: colors.ink,
+    paddingVertical: 14,
+    borderRadius: radius.pill,
+    alignItems: 'center',
+  },
+  quickPrimaryText: {
+    color: '#fff',
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  quickSecondary: {
+    paddingVertical: 13,
+    borderRadius: radius.pill,
+    borderWidth: 1,
+    borderColor: colors.ink,
+    alignItems: 'center',
+  },
+  quickSecondaryText: {
+    color: colors.ink,
+    fontSize: 15,
+    fontWeight: '600',
   },
   correctDone: {
     marginTop: 10,

@@ -1,95 +1,152 @@
 #!/usr/bin/env node
 // voice-ok: the double hyphens below are npm's argument separator, not prose.
 //
-// Run the shipped classifier decision over real JPEGs and print one line per
-// file. This is the real validation for lib/hue.ts changes: the unit tests
-// use synthetic frames, this uses your phone photos.
+// Runs the SHIPPED classifier decision (lib/decision.ts, the same code the
+// app runs after the JPEG decode) over real photos and prints one line per
+// file. Two modes:
 //
-//   npm run fixtures -- ~/Pictures/bananas/*.jpg
-//   npm run fixtures -- ~/Pictures/bananas            (a folder; one level)
+//   npm run fixtures                          corpus gate: every photo in
+//                                             fixtures/photos/ is checked
+//                                             against fixtures/expectations.json;
+//                                             exits 1 on any miss
+//   npm run fixtures -- <photo|folder> [...]  ad hoc: print the decision for
+//                                             the given files (JPEG, or HEIC
+//                                             on macOS via sips)
 //
-// Prints: stage (or NOT A BANANA), rounded hue, raw hue, confidence, and the
-// share of sampled pixels that looked banana-colored. No files are modified.
-// Uses jpeg-js (already a dependency) and Node's TypeScript type stripping,
-// so there is nothing to install.
-import { readFileSync, readdirSync, statSync } from 'node:fs';
+// Columns: result, rounded hue, raw hue, confidence, banana-colored share of
+// the frame, median saturation of those pixels. Nothing is modified. Needs
+// `node --import ./scripts/node-ts-resolver.mjs` (the npm script adds it).
+import { readFileSync, readdirSync, statSync, existsSync, mkdtempSync, rmSync } from 'node:fs';
 import { join, extname, basename } from 'node:path';
+import { tmpdir } from 'node:os';
+import { execFileSync } from 'node:child_process';
 import { decode } from 'jpeg-js';
 
-// lib/classify.ts imports expo-file-system, which Node cannot load, so the
-// decision is mirrored here from classifyReading() in that file. Keep the two
-// in step: round to HUE_ROUNDING, map, score from the raw hue.
-import { readHue, looksLikeBanana } from '../lib/hue.ts';
-import { STAGES, HUE_ROUNDING, hueToStage, stageConfidence } from '../lib/stages.ts';
+import { classifyDecoded } from '../lib/decision.ts';
+import { STAGES } from '../lib/stages.ts';
 
-const SAMPLE_RATE = 10;
-const MAX_DIMENSION = 800;
-function sampleStep(width, height) {
-  const longSide = Math.max(width, height);
-  return SAMPLE_RATE * (longSide > MAX_DIMENSION ? Math.ceil(longSide / MAX_DIMENSION) : 1);
-}
-function classifyReading(reading) {
-  if (!looksLikeBanana(reading)) {
-    return { notBanana: true, stage: 3, hue: 60, rawHue: reading.hue, confidence: 0, candidateFraction: reading.fraction };
-  }
-  const rawHue = reading.hue;
-  const hue = Math.round(rawHue / HUE_ROUNDING) * HUE_ROUNDING;
-  const stage = hueToStage(hue);
-  return { notBanana: false, stage, hue, rawHue, confidence: stageConfidence(rawHue, stage), candidateFraction: reading.fraction };
-}
+const ROOT = new URL('..', import.meta.url).pathname;
+const CORPUS_DIR = join(ROOT, 'fixtures', 'photos');
+const EXPECTATIONS = join(ROOT, 'fixtures', 'expectations.json');
+/** A stage expectation passes within this many stages either side. */
+const STAGE_TOLERANCE = 1;
 
 const args = process.argv.slice(2);
-if (args.length === 0) {
-  console.error('usage: npm run fixtures -- <photo.jpg | folder> [...]');
-  process.exit(2);
-}
+const corpusMode = args.length === 0;
 
-const files = [];
-for (const a of args) {
-  let st;
-  try {
-    st = statSync(a);
-  } catch {
-    console.error(`skip (not found): ${a}`);
-    continue;
-  }
-  if (st.isDirectory()) {
-    for (const f of readdirSync(a)) {
-      if (/\.jpe?g$/i.test(extname(f))) files.push(join(a, f));
-    }
-  } else {
-    files.push(a);
-  }
-}
-
+const files = corpusMode ? listPhotos(CORPUS_DIR) : expand(args);
 if (files.length === 0) {
-  console.error('no .jpg files found');
-  process.exit(2);
+  console.error(
+    corpusMode
+      ? `no photos in ${CORPUS_DIR}; add one with: npm run fixtures:add -- <photo> <stage|not>`
+      : 'no .jpg/.heic files found',
+  );
+  process.exit(corpusMode ? 0 : 2);
 }
+
+const expectations = corpusMode && existsSync(EXPECTATIONS)
+  ? JSON.parse(readFileSync(EXPECTATIONS, 'utf8'))
+  : {};
 
 const pad = (s, n) => String(s).padEnd(n);
 console.log(
-  `${pad('file', 36)} ${pad('result', 28)} ${pad('hue', 5)} ${pad('raw', 7)} ${pad('conf', 5)} frac`,
+  `${pad('file', 34)} ${pad('result', 26)} ${pad('hue', 4)} ${pad('raw', 6)} ${pad('conf', 5)} ${pad('frame', 6)} sat${corpusMode ? '    expected  ok' : ''}`,
 );
-for (const f of files) {
-  let img;
-  try {
-    img = decode(readFileSync(f), { useTArray: true, tolerantDecoding: true });
-  } catch (err) {
-    console.log(`${pad(basename(f), 36)} DECODE FAILED (${err.message})`);
-    continue;
+
+let misses = 0;
+const tmp = mkdtempSync(join(tmpdir(), 'gobananas-fixtures-'));
+try {
+  for (const f of files) {
+    const r = classifyFile(f, tmp);
+    const name = basename(f);
+    if (!r) {
+      console.log(`${pad(name, 34)} DECODE FAILED`);
+      if (corpusMode) misses++;
+      continue;
+    }
+    const label = describe(r);
+    let tail = '';
+    if (corpusMode) {
+      const expected = expectations[name];
+      const ok = matches(r, expected);
+      if (ok === false) misses++;
+      tail = `    ${pad(expected === undefined ? '(unlabeled)' : String(expected), 9)} ${ok === null ? '?' : ok ? 'ok' : 'MISS'}`;
+    }
+    console.log(
+      `${pad(name, 34)} ${pad(label, 26)} ${pad(r.hue, 4)} ${pad(r.rawHue === null ? '-' : r.rawHue.toFixed(1), 6)} ${pad(r.confidence, 5)} ${pad((r.candidateFraction * 100).toFixed(1) + '%', 6)} ${r.satMedian === null ? '-' : r.satMedian.toFixed(2)}${tail}`,
+    );
   }
-  const reading = readHue(img.data, img.width, img.height, {
-    step: sampleStep(img.width, img.height),
-  });
-  const r = classifyReading(reading);
-  const label = r.notBanana
-    ? 'NOT A BANANA'
-    : `Stage ${r.stage} ${STAGES[r.stage].label}`;
+} finally {
+  rmSync(tmp, { recursive: true, force: true });
+}
+
+if (corpusMode) {
+  const unlabeled = files.filter((f) => expectations[basename(f)] === undefined).length;
   console.log(
-    `${pad(basename(f), 36)} ${pad(label, 28)} ${pad(r.hue, 5)} ${pad(
-      r.rawHue === null ? '-' : r.rawHue.toFixed(1),
-      7,
-    )} ${pad(r.confidence, 5)} ${(r.candidateFraction * 100).toFixed(1)}%`,
+    `\n${files.length} photos, ${misses} miss${misses === 1 ? '' : 'es'}${unlabeled ? `, ${unlabeled} unlabeled` : ''}`,
   );
+  if (misses > 0) process.exit(1);
+}
+
+/* ------------------------------------------------------------------ */
+
+function describe(r) {
+  if (r.demo) return 'UNREADABLE';
+  if (r.verdict === 'not') return 'NOT A BANANA';
+  const stage = `Stage ${r.stage} ${STAGES[r.stage].label}`;
+  return r.verdict === 'unsure' ? `UNSURE (${stage})` : stage;
+}
+
+/** true / false, or null when there is no expectation for the file. */
+function matches(r, expected) {
+  if (expected === undefined) return null;
+  if (expected === 'NOT_BANANA' || expected === 'not') return r.verdict === 'not';
+  if (expected === 'UNSURE' || expected === 'unsure') return r.verdict === 'unsure';
+  const stage = Number(expected);
+  if (!Number.isInteger(stage)) return null;
+  return r.verdict === 'banana' && Math.abs(r.stage - stage) <= STAGE_TOLERANCE;
+}
+
+function classifyFile(f, tmp) {
+  let path = f;
+  if (/\.heic$/i.test(f)) {
+    // macOS only: sips converts HEIC. Downsize while we are at it.
+    path = join(tmp, basename(f, extname(f)) + '.jpg');
+    execFileSync('sips', ['-s', 'format', 'jpeg', '-s', 'formatOptions', '90', '-Z', '1600', f, '--out', path], { stdio: 'ignore' });
+  }
+  try {
+    const img = decode(readFileSync(path), { useTArray: true, tolerantDecoding: true });
+    return classifyDecoded(img);
+  } catch {
+    return null;
+  }
+}
+
+function listPhotos(dir) {
+  if (!existsSync(dir)) return [];
+  return readdirSync(dir)
+    .filter((f) => /\.jpe?g$/i.test(f))
+    .sort()
+    .map((f) => join(dir, f));
+}
+
+function expand(paths) {
+  const out = [];
+  for (const a of paths) {
+    let st;
+    try {
+      st = statSync(a);
+    } catch {
+      console.error(`skip (not found): ${a}`);
+      continue;
+    }
+    if (st.isDirectory()) {
+      for (const f of readdirSync(a)) {
+        if (/\.(jpe?g|heic)$/i.test(extname(f))) out.push(join(a, f));
+      }
+    } else {
+      out.push(a);
+    }
+  }
+  return out;
 }

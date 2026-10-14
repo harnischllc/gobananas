@@ -7,8 +7,10 @@
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",
-    "test": "node --test lib/__tests__/",
-    "fixtures": "node scripts/classify-fixtures.mjs",
+    "test": "node --import ./scripts/node-ts-resolver.mjs --test lib/__tests__/ && node --import ./scripts/node-ts-resolver.mjs scripts/classify-fixtures.mjs",
+    "fixtures": "node --import ./scripts/node-ts-resolver.mjs scripts/classify-fixtures.mjs",
+    "fixtures:add": "node --import ./scripts/node-ts-resolver.mjs scripts/fixtures-add.mjs",
+    "stats": "node --import ./scripts/node-ts-resolver.mjs scripts/hue-stats.mjs",
     "ship:ios": "eas build --platform ios --profile production --non-interactive --auto-submit",
     "ship:android": "eas build --platform android --profile production --non-interactive --auto-submit",
     "ship": "eas build --platform all --profile production --non-interactive --auto-submit"

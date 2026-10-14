@@ -42,6 +42,18 @@ export interface ScanRecord {
   demo: boolean;
   /** True when the frame had nothing banana-colored in it (build 15+). */
   notBanana?: boolean;
+  /** 'user' when the person said "not a banana" on a result (build 16+). */
+  notBananaBy?: 'user';
+  /**
+   * True while the classifier is unsure and the person has not answered
+   * "Is this a banana?" yet (build 16+). Cleared by confirmBananaScan or
+   * markNotBanana.
+   */
+  unsure?: boolean;
+  /** Share of the frame that was banana-colored, 0-1 (build 16+). */
+  candidateFraction?: number;
+  /** Median saturation of the banana-colored pixels, 0-1 (build 16+). */
+  satMedian?: number;
   /** Aside key (lib/asides.ts) chosen at scan time, if any (build 15+). */
   aside?: string;
   /** User correction, if any. */
@@ -50,7 +62,7 @@ export interface ScanRecord {
 
 /** A row the stage UI should treat as a real banana reading. */
 export function isBananaScan(r: ScanRecord): boolean {
-  return !r.notBanana && !r.demo;
+  return !r.notBanana && !r.demo && !r.unsure;
 }
 
 export async function loadHistory(): Promise<ScanRecord[]> {
@@ -145,6 +157,41 @@ export async function updateScanCorrection(
   const existing = await loadHistory();
   const next = existing.map((r) => (r.id === id ? { ...r, corrected } : r));
   await AsyncStorage.setItem(KEY, JSON.stringify(next));
+}
+
+/**
+ * "Yes, it's a banana" on an unsure result: the row becomes a normal banana
+ * scan and starts counting toward the day and lifetime tallies.
+ */
+export async function confirmBananaScan(id: string): Promise<ScanRecord | null> {
+  const existing = await loadHistory();
+  const target = existing.find((r) => r.id === id);
+  if (!target || !target.unsure) return target ?? null;
+  const updated: ScanRecord = { ...target, unsure: false };
+  const next = existing.map((r) => (r.id === id ? updated : r));
+  await AsyncStorage.setItem(KEY, JSON.stringify(next));
+  const count = await loadScanCount(existing);
+  await saveScanCount(count + 1);
+  return updated;
+}
+
+/**
+ * "No, it isn't" on an unsure result, or the "Not a banana" chip on a stage
+ * result: the row becomes a not-a-banana row, marked as the person's call.
+ */
+export async function markNotBanana(id: string): Promise<ScanRecord | null> {
+  const existing = await loadHistory();
+  const target = existing.find((r) => r.id === id);
+  if (!target) return null;
+  const updated: ScanRecord = {
+    ...target,
+    unsure: false,
+    notBanana: true,
+    notBananaBy: 'user',
+  };
+  const next = existing.map((r) => (r.id === id ? updated : r));
+  await AsyncStorage.setItem(KEY, JSON.stringify(next));
+  return updated;
 }
 
 /**

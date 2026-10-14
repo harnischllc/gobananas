@@ -59,6 +59,10 @@ export interface CorrectionInput {
   rawHue?: number;
   confidence: number;
   demo: boolean;
+  /** Share of the frame that was banana-colored (build 16+). */
+  candidateFraction?: number;
+  /** Median saturation of the banana-colored pixels (build 16+). */
+  satMedian?: number;
 }
 
 export async function sendCorrection(c: CorrectionInput): Promise<void> {
@@ -76,6 +80,17 @@ export async function sendCorrection(c: CorrectionInput): Promise<void> {
         hue: Math.round(c.rawHue ?? c.hue),
         confidence: Math.round(c.confidence),
         demo: c.demo,
+        // The Worker ignores fields it does not know, so these are safe to
+        // send now and start landing in D1 once bananascanner-website's
+        // worker + schema accept them (follow-up in that repo).
+        candidateFraction:
+          c.candidateFraction === undefined
+            ? undefined
+            : Math.round(c.candidateFraction * 1000) / 1000,
+        satMedian:
+          c.satMedian === undefined
+            ? undefined
+            : Math.round(c.satMedian * 100) / 100,
         appVersion: Constants.expoConfig?.version ?? 'unknown',
         ts: new Date().toISOString(),
       }),

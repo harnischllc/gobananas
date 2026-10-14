@@ -76,10 +76,18 @@ function OddRow({
   onPress?: () => void;
 }) {
   const notBanana = !!record.notBanana;
-  const title = notBanana ? 'Not a banana' : "Couldn't read photo";
-  const sub = notBanana
-    ? 'Nothing banana-colored in frame'
-    : 'The camera blinked. Try again.';
+  const unsure = !notBanana && !!record.unsure;
+  const title = unsure
+    ? 'Is this a banana?'
+    : notBanana
+      ? 'Not a banana'
+      : "Couldn't read photo";
+  const sub = unsure
+    ? 'Tap to answer'
+    : notBanana
+      ? 'Nothing banana-colored in frame'
+      : 'The camera blinked. Try again.';
+  const glyph = unsure ? '❓' : notBanana ? '🙊' : '📷';
   return (
     <Pressable
       onPress={onPress}
@@ -92,7 +100,7 @@ function OddRow({
         accessibilityElementsHidden
         importantForAccessibility="no-hide-descendants"
       >
-        <Text style={styles.oddGlyph}>{notBanana ? '🙊' : '📷'}</Text>
+        <Text style={styles.oddGlyph}>{glyph}</Text>
       </View>
       <View style={styles.meta}>
         <Text style={styles.name} numberOfLines={1}>

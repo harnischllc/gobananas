@@ -1,53 +1,27 @@
 /**
- * Banana ripeness classifier. Descended from the Flask app's
- * `utils/color_detection.py`; the pixel math now lives in lib/hue.ts so it
- * can be unit tested without Expo.
+ * Banana ripeness classifier, Expo side. Reads the captured JPEG, decodes
+ * it, and hands the pixels to lib/decision.ts, which owns the decision:
  *
- *   1. Read the captured JPEG as bytes
- *   2. Decode to RGB pixels (jpeg-js, pure JS)
- *   3. Sample every Nth pixel, skip gray-ish pixels and non-banana hues
- *   4. Take the CENTER-WEIGHTED MEDIAN hue of what survives (lib/hue.ts)
- *   5. If almost nothing survived, or the color is one no banana shows,
- *      report not-a-banana instead of inventing a stage
- *   6. Round to 5° and map to a stage via `hueToStage()` in lib/stages.ts
- *   7. Score confidence from the UNROUNDED hue (`stageConfidence()`)
+ *   1. Read the captured JPEG as bytes (here)
+ *   2. Decode to RGB pixels with jpeg-js, pure JS (here)
+ *   3. Sample every Nth pixel; keep pixels that are bright enough, saturated
+ *      enough (>= 0.30) and in a banana hue (lib/hue.ts)
+ *   4. Center-weighted median hue of what survives (lib/hue.ts)
+ *   5. Verdict: banana / unsure / not a banana (lib/hue.ts bananaVerdict)
+ *   6. Round to 5°, map to a stage, score confidence (lib/decision.ts)
+ *
+ * The split exists so `npm run fixtures` and `npm test` run the exact
+ * shipped decision in Node, where this file cannot load.
  */
 
 // Use the legacy import path; the new modular API doesn't expose
 // readAsStringAsync the same way and isn't fully wired in SDK 54.
 import * as FileSystem from 'expo-file-system/legacy';
 import { decode as decodeJpeg } from 'jpeg-js';
-import { Stage, HUE_ROUNDING, hueToStage, stageConfidence } from './stages';
-import { readHue, looksLikeBanana, HueReading } from './hue';
+import { classifyDecoded, unreadableResult, ClassifyResult } from './decision';
 
-export interface ClassifyResult {
-  stage: Stage;
-  /** Hue rounded to HUE_ROUNDING degrees; this is what picked the stage. */
-  hue: number;
-  /** Unrounded center-weighted median hue. Null when nothing was read. */
-  rawHue: number | null;
-  /** 0-100, distance from the nearest stage boundary. See stageConfidence. */
-  confidence: number;
-  /** True when the frame had nothing banana-colored in it. */
-  notBanana: boolean;
-  /** Share of sampled pixels that passed the filters (0-1). */
-  candidateFraction: number;
-  /** True if the result came from a fallback (decode failed). */
-  demo: boolean;
-}
-
-// Sample every Nth pixel on each axis. Higher = faster, less accurate.
-// Tuned for ~250–500ms on a recent phone.
-const SAMPLE_RATE = 10;
-
-// Largest image dimension we'll bother decoding. Bigger = slower with
-// no real accuracy gain. iOS camera shots come in around 3000–4000px;
-// downscaling happens at the expo-image-picker layer (`quality: 0.7`)
-// but we still cap here as a safety net.
-const MAX_DIMENSION = 800;
-
-/** What hueToStage gets when the frame carried no usable color. */
-const NO_READING_HUE = 60;
+export type { ClassifyResult } from './decision';
+export { classifyReading, readImage, sampleStep } from './decision';
 
 /**
  * Classify a banana image at the given local URI.
@@ -63,73 +37,13 @@ export async function classifyImage(uri: string): Promise<ClassifyResult> {
     // useTArray=true returns a faster Uint8Array; tolerantDecoding=true
     // accepts slightly malformed JPEGs from various cameras.
     const decoded = decodeJpeg(bytes, { useTArray: true, tolerantDecoding: true });
-    const reading = readImage(decoded);
-    return classifyReading(reading);
+    return classifyDecoded(decoded);
   } catch (err) {
     // Fall back so the UX still completes. The result screen shows a
     // "couldn't read that photo" card for demo:true rather than a stage.
     console.warn('classifyImage failed:', err);
-    return {
-      stage: 4,
-      hue: 35,
-      rawHue: null,
-      confidence: 0,
-      notBanana: false,
-      candidateFraction: 0,
-      demo: true,
-    };
+    return unreadableResult();
   }
-}
-
-/**
- * Turn a hue reading into a result. Pure; exported so the fixture script
- * (scripts/classify-fixtures.mjs) can run the exact shipped decision.
- */
-export function classifyReading(reading: HueReading): ClassifyResult {
-  if (!looksLikeBanana(reading)) {
-    return {
-      stage: hueToStage(NO_READING_HUE),
-      hue: NO_READING_HUE,
-      rawHue: reading.hue,
-      confidence: 0,
-      notBanana: true,
-      candidateFraction: reading.fraction,
-      demo: false,
-    };
-  }
-  const rawHue = reading.hue as number;
-  const hue = Math.round(rawHue / HUE_ROUNDING) * HUE_ROUNDING;
-  const stage = hueToStage(hue);
-  return {
-    stage,
-    hue,
-    rawHue,
-    confidence: stageConfidence(rawHue, stage),
-    notBanana: false,
-    candidateFraction: reading.fraction,
-    demo: false,
-  };
-}
-
-interface DecodedImage {
-  width: number;
-  height: number;
-  data: Uint8Array | Uint8ClampedArray;
-}
-
-/** Sample step that also downsamples large images, like the Python "resize to 800px" step. */
-export function sampleStep(width: number, height: number): number {
-  const longSide = Math.max(width, height);
-  const downsample = longSide > MAX_DIMENSION
-    ? Math.ceil(longSide / MAX_DIMENSION)
-    : 1;
-  return SAMPLE_RATE * downsample;
-}
-
-export function readImage(img: DecodedImage): HueReading {
-  return readHue(img.data, img.width, img.height, {
-    step: sampleStep(img.width, img.height),
-  });
 }
 
 /**
