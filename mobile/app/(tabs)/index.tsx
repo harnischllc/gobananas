@@ -19,8 +19,15 @@ import { HistoryRow } from '../../components/HistoryRow';
 import { DancingBanana } from '../../components/DancingBanana';
 import { PetBananaCard } from '../../components/PetBananaCard';
 import { SCAN_REQUEST_EVENT } from './_layout';
-import { addScan, loadHistory, ScanRecord } from '../../lib/history';
+import {
+  addScan,
+  countScansOnDay,
+  loadHistory,
+  loadScanCount,
+  ScanRecord,
+} from '../../lib/history';
 import { classifyImage } from '../../lib/classify';
+import { pickAside } from '../../lib/asides';
 import {
   Bunch,
   bunchOver,
@@ -140,12 +147,29 @@ export default function ScanHome() {
 
       const asset = result.assets[0];
       const classification = await classifyImage(asset.uri);
+
+      // Asides are decided here, at scan time, and stored on the record so
+      // the line is stable on reopen and in the share text. Only real banana
+      // readings count toward the day and lifetime tallies.
+      let aside: string | undefined;
+      if (!classification.notBanana && !classification.demo) {
+        const now = new Date();
+        const history = await loadHistory();
+        const lifetimeCount = (await loadScanCount(history)) + 1;
+        const todayCount = countScansOnDay(history, now) + 1;
+        aside =
+          (await pickAside({ now, todayCount, lifetimeCount })) ?? undefined;
+      }
+
       const record = await addScan({
         imageUri: asset.uri,
         stage: classification.stage,
         hue: classification.hue,
+        rawHue: classification.rawHue ?? undefined,
         confidence: classification.confidence,
         demo: classification.demo,
+        notBanana: classification.notBanana || undefined,
+        aside,
       });
 
       router.push({ pathname: '/result', params: { id: record.id } });

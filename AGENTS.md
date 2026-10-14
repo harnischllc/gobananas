@@ -1,5 +1,6 @@
 # Project Context for Codex
 
+<!-- voice-ok: internal working rules; the banned-word list below is the rule, not usage -->
 Read this before any work. If something's not covered here, ask before assuming.
 
 ## What this is
@@ -51,6 +52,7 @@ On weak areas: explain steps, show me which buttons to click, don't assume I kno
 - Play tester list: "Banana Testers" (internal testing)
 - EAS project: linked via `eas init` (commit `7a15e3d`). `appVersionSource: local` — bump `app.json` `ios.buildNumber` (and `android.versionCode` when shipping Android) BEFORE each `npm run ship:ios` / `ship:android`. Remote source was tried 2026-05-24 and got stuck on 4 across multiple builds; reverted to local in commit `79c0476`. Use `npm run ship:ios` / `ship:android` / `ship` from `mobile/` to build + auto-submit in one command.
 - EAS submit: iOS uses `apple@aqueroministries.org` (team `TA777BLD49`); Android uses Play service account JSON at `/Users/ericharnisch/.config/eas/harnisch-llc-play-service-account.json`, track `internal`, releaseStatus `draft`.
+- Tests: `npm test` from `mobile/` runs `node --test lib/__tests__/` (Node's built-in runner, no framework installed; the `.mjs` specs import `lib/hue.ts`, `lib/stages.ts`, `lib/nameReactions.ts` directly, so those files must stay free of React Native imports). `npm run fixtures -- <photos or folder>` prints the shipped classifier's decision per JPEG; use it on real phone photos before changing `lib/hue.ts` thresholds. Changelog: `mobile/CHANGELOG.md`, bump it with every version.
 - Render service: fully shut down 2026-05-24.
 - Feedback email for testers: the bananascanner.com site uses feedback@bananascanner.com (general) and beta@bananascanner.com (beta requests), both forwarding to info@harnischllc.com. Eric can send/reply as either branded address via Gmail "Send mail as" over Resend SMTP (set up 2026-06-12; recipe in Open Brain). Replaces the earlier info@/eric.harnisch@gmail.com notes.
 - Cloudflare account ID (Harnisch LLC): `a73bfcc0f66055f7da62abe390d117c8`
@@ -59,7 +61,9 @@ On weak areas: explain steps, show me which buttons to click, don't assume I kno
 
 - "the classifier" = the hue-based ripeness classification logic in `mobile/` (recently recalibrated +20° for real iPhone photos in commit `2ffdd14`).
 - "stages" / "stage of ripeness" = the discrete ripeness categories the classifier returns (green through overripe).
-- "the diagnostic" = the calibration data panel at the bottom of the result screen, added in `8328b9d`, used to debug misclassifications.
+- "the diagnostic" = the calibration data panel at the bottom of the result screen, added in `8328b9d`, used to debug misclassifications. Since build 15 it shows the hue and the called stage only; the inverted confidence percentage was removed, not fixed in place.
+- "not a banana" = the build 15 result (🙊) for a frame with under 3% banana-colored pixels or a teal/magenta dominant color (`lib/hue.ts` looksLikeBanana). Own card and history row, no correction chips.
+- "asides" = rare one-liners that replace the stage vibe for one scan (`lib/asides.ts`: scan 100, 7th scan today, midnight), chosen at scan time and stored on the record.
 - "Beta Bananas" = the external TestFlight group (iOS).
 - "Team (Expo)" = the internal TestFlight group (iOS).
 - "Banana Testers" = the Google Play internal testing list (Android).

@@ -73,7 +73,7 @@ const PEELS_FLAVORS: string[] = [
   'All peels, no banana. The classic gag.',
   'Aristotle says it\'s a metaphor. Aristotle is unhelpful.',
   'Empty. Suspiciously empty. There\'s a single banana sticker.',
-  'A note: "IOU one banana — the monkeys."',
+  'A note: "IOU one banana. The monkeys."',
   'You unwrap it slowly. It\'s peels all the way down.',
 ];
 
@@ -213,7 +213,7 @@ export const VARIETIES: Variety[] = [
     color: '#dd7a1f',
     colorSoft: '#fbe2c3',
     flavor: 'Wrapped in white peel. Probably cursed.',
-    perk: 'Reanimates after eaten — adds one back to the bunch.',
+    perk: 'Reanimates after eaten. Adds one back to the bunch.',
     seasonal: 'halloween',
   },
   {

@@ -58,7 +58,7 @@ export function PetActions({
         : banana.ripeness < 65
           ? `Eat ${banana.name}? Almost peak`
           : banana.ripeness < 85
-            ? `Eat ${banana.name} now — peak`
+            ? `Eat ${banana.name} now, at peak`
             : `Eat ${banana.name} (past peak)`;
 
   return (

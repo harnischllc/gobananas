@@ -3,6 +3,7 @@ import {
   ScanRecord,
   formatScanTime,
   formatScanTimeFlat,
+  isBananaScan,
 } from '../lib/history';
 import {
   STAGES,
@@ -20,8 +21,13 @@ interface Props {
 }
 
 export function HistoryRow({ record, onPress }: Props) {
-  const def = STAGES[record.stage];
   const time = formatScanTime(record.timestamp);
+
+  if (!isBananaScan(record)) {
+    return <OddRow record={record} time={time} onPress={onPress} />;
+  }
+
+  const def = STAGES[record.stage];
   const rating = ratingFromStage(record.stage);
   const ratingText = ratingLabel(rating);
   // Single accessible string for the screen reader.
@@ -51,17 +57,68 @@ export function HistoryRow({ record, onPress }: Props) {
           </Text>
         </View>
       </View>
-      <View style={styles.timeCol}>
-        <Text style={styles.timePrimary} numberOfLines={1}>
-          {time.primary}
-        </Text>
-        {time.secondary && (
-          <Text style={styles.timeSecondary} numberOfLines={1}>
-            {time.secondary}
-          </Text>
-        )}
-      </View>
+      <TimeCol time={time} />
     </Pressable>
+  );
+}
+
+/**
+ * Not-a-banana and unreadable-photo rows. No stage, no rating: the third
+ * monkey instead of a stage dot, and a one-line reason.
+ */
+function OddRow({
+  record,
+  time,
+  onPress,
+}: {
+  record: ScanRecord;
+  time: ReturnType<typeof formatScanTime>;
+  onPress?: () => void;
+}) {
+  const notBanana = !!record.notBanana;
+  const title = notBanana ? 'Not a banana' : "Couldn't read photo";
+  const sub = notBanana
+    ? 'Nothing banana-colored in frame'
+    : 'The camera blinked. Try again.';
+  return (
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={`${title}. ${sub}. ${formatScanTimeFlat(record.timestamp)}.`}
+      style={({ pressed }) => [styles.row, pressed && { opacity: 0.6 }]}
+    >
+      <View
+        style={styles.oddDot}
+        accessibilityElementsHidden
+        importantForAccessibility="no-hide-descendants"
+      >
+        <Text style={styles.oddGlyph}>{notBanana ? '🙊' : '📷'}</Text>
+      </View>
+      <View style={styles.meta}>
+        <Text style={styles.name} numberOfLines={1}>
+          {title}
+        </Text>
+        <Text style={styles.sub} numberOfLines={1}>
+          {sub}
+        </Text>
+      </View>
+      <TimeCol time={time} />
+    </Pressable>
+  );
+}
+
+function TimeCol({ time }: { time: ReturnType<typeof formatScanTime> }) {
+  return (
+    <View style={styles.timeCol}>
+      <Text style={styles.timePrimary} numberOfLines={1}>
+        {time.primary}
+      </Text>
+      {time.secondary && (
+        <Text style={styles.timeSecondary} numberOfLines={1}>
+          {time.secondary}
+        </Text>
+      )}
+    </View>
   );
 }
 
@@ -92,6 +149,17 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginTop: 2,
+  },
+  oddDot: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: colors.line,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  oddGlyph: {
+    fontSize: 18,
   },
   timeCol: {
     minWidth: 76, // Enough for "Yesterday" plus breathing room.

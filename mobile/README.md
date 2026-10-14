@@ -1,92 +1,77 @@
-# Go Bananas — Mobile
+# Go Bananas: Mobile
 
-Expo / React Native demo build for the Go Bananas banana ripeness app.
-Sibling to the existing Flask web app at the repo root.
+Expo / React Native app for Go Bananas (banana ripeness scanner). This
+folder is the whole product; the old Flask web app and Capacitor shell were
+deleted in May 2026 and are not coming back.
 
-**Status: v0.1 demo.** UI is real; classification is currently mocked
-with a clear "DEMO MODE" indicator on the result screen. Replacing the
-mock with the on-device port of `utils/color_detection.py` is the next
-implementation chunk.
+**Status: live on both stores.** iOS App Store and Google Play carry 1.0.0
+(build 14). The repo is at 1.1.0 (build 15); see `CHANGELOG.md`.
+Classification is real and on-device (`lib/classify.ts` + `lib/hue.ts`).
 
-## Run it on your phone in 3 steps
+## Run it on your phone
 
-1. Install **Expo Go** on your iPhone or Android phone (free, App Store / Play Store).
+1. Install **Expo Go** on your iPhone or Android phone.
 2. From this directory:
    ```bash
    cd mobile
    npm start
    ```
-   (or `npx expo start` — same thing)
-3. Scan the QR code that appears in your terminal with:
-   - **iOS**: the built-in Camera app (it'll offer to open in Expo Go)
-   - **Android**: the Expo Go app's "Scan QR code" button
+3. Scan the QR code with the Camera app (iOS) or Expo Go (Android).
 
-Phone and computer must be on the same Wi-Fi network. If they're not,
-press `s` in the terminal to switch to **tunnel** mode (slower but
-crosses networks) and rescan.
+Phone and computer must be on the same Wi-Fi. If not, press `s` in the
+terminal for tunnel mode and rescan.
+
+## Test and ship
+
+```bash
+npm test                               # Node's built-in runner over lib/__tests__/, no framework
+npm run fixtures -- ~/path/to/photos   # classifier decision for real JPEGs (voice-ok)
+npx tsc --noEmit -p .                  # type check
+```
+
+Bump `app.json` `ios.buildNumber` and `android.versionCode` by hand before
+shipping (`appVersionSource` is `local`), then:
+
+```bash
+npm run ship:ios       # EAS build + auto-submit to TestFlight
+npm run ship:android   # EAS build + auto-submit to Play internal (draft)
+npm run ship           # both
+```
 
 ## What's in here
 
 ```
 mobile/
 ├── app/                      # expo-router screens (file-based routes)
-│   ├── _layout.tsx           # Root stack: tabs + result modal
-│   ├── result.tsx            # Result screen (modal)
+│   ├── _layout.tsx           # Root stack: tabs + modals
+│   ├── result.tsx            # Result screen: stage, aside, corrections, not-a-banana
+│   ├── rewards.tsx           # Daily crate, streak, variety collection
 │   └── (tabs)/
-│       ├── _layout.tsx       # Bottom tab bar
-│       ├── index.tsx         # Scan / Home
+│       ├── _layout.tsx       # Bottom tab bar (center Scan button fires the camera)
+│       ├── index.tsx         # Home: scan card, bunch preview, fact, crate, recent
 │       ├── history.tsx       # Local scan history
-│       ├── bananas.tsx       # 7-stage USDA scale, plain English
-│       └── you.tsx           # Settings stub + corrections opt-in
-├── components/
-│   ├── ScanCard.tsx          # The yellow "scan with camera" hero card
-│   ├── HistoryRow.tsx        # One row in any history list
-│   └── StageDot.tsx          # The colored stage badge
-└── lib/
-    ├── stages.ts             # Port of utils/constants.py + hueToStage()
-    ├── classify.ts           # MOCKED classifier — replace next
-    ├── history.ts            # AsyncStorage wrapper for scan records
-    └── theme.ts              # Colors, spacing, shadows
+│       ├── bananas.tsx       # The bunch game + the 7-stage USDA scale
+│       └── you.tsx           # Settings, corrections toggle, about
+├── components/               # Cards, rows, the dancing banana, crate animation
+├── lib/
+│   ├── hue.ts                # Pixel math: center-weighted median, not-a-banana rule (import-free, tested)
+│   ├── classify.ts           # JPEG read + decode, calls hue.ts, builds the result
+│   ├── stages.ts             # 7 stages, hueToStage (nearest band), stageConfidence
+│   ├── history.ts            # AsyncStorage scan records, lifetime scan counter
+│   ├── asides.ts             # Rare one-liners chosen at scan time
+│   ├── corrections.ts        # Anonymous corrections POST, tri-state consent
+│   ├── nameReactions.ts      # Easter-egg replies to bunch family names
+│   ├── pet.ts / hammock.ts   # The bunch game
+│   ├── drops.ts / streak.ts  # Rewards loop
+│   ├── bananaFacts.ts        # 61 curated facts
+│   └── theme.ts              # Colors, spacing, shadows
+├── lib/__tests__/            # node --test specs (*.mjs importing the .ts directly)
+└── scripts/
+    └── classify-fixtures.mjs # Run the classifier over real photos
 ```
-
-## What works in the demo
-
-- Home screen with hero scan card matching `docs/mockups/homescreen-concept-v1.html`
-- Tap "Scan with camera" → camera permission flow → take photo
-- "Analyzing…" state, then a result screen with stage, days-to-peak,
-  confidence (words and number), playful one-liner, suggestions
-- Result auto-saves to local history (AsyncStorage)
-- History tab lists every scan, taps re-open the result
-- "Bananas" tab explains all 7 stages with persona-friendly copy
-- "You" tab has the corrections opt-in toggle (UI only — no endpoint)
-- "Was this off?" button on the result screen with a stub correction flow
-- Share Sheet integration for bragging about a peak banana
-
-## What's faked
-
-- **Classification.** `lib/classify.ts` returns a deterministic-but-varied
-  result keyed off the image URI hash. Same photo → same result. Different
-  photos → different results. Convincing enough to test the UX, useless
-  as an actual classifier.
-
-  The real port: pixel decode from the captured image (likely via
-  `jpeg-js` in pure JS, or a thin native module if we leave Expo Go),
-  then the histogram + dominant-hue logic that's already in
-  `utils/color_detection.py`. About a half-day of work on its own.
-
-- **Corrections endpoint.** The opt-in toggle and the "Was this off?"
-  flow exist but don't POST anywhere. Endpoint design is a separate
-  spec.
 
 ## Editing the app
 
-Saves hot-reload in Expo Go. Just save the file and the phone updates.
-If state gets weird, shake the phone → "Reload."
-
-## Why React Native, not Flutter
-
-We picked Flutter in the brainstorm. Switched to React Native + Expo
-when the request became "preview on my phone via Expo Go" — Expo Go is
-React Native specifically. Tradeoffs are similar (one codebase, both
-stores) and JS is closer to the Flask app's web stack. Both are valid;
-this is the path that lets us iterate fastest right now.
+Saves hot-reload in Expo Go. If state gets weird, shake the phone and tap
+Reload. Unit tests import `lib/*.ts` straight into Node (type stripping),
+so anything they touch must stay free of React Native imports.

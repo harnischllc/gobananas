@@ -342,8 +342,8 @@ export default function BananasScreen() {
           <Text style={styles.footBody}>
             Banana skin chlorophyll breaks down as the fruit ripens and
             carotenoid pigments take over. That shift moves the dominant
-            hue from green (~90°) toward yellow (~25°) and finally browns
-            (under 20°). Go Bananas reads the dominant hue from your photo
+            hue from green (~90°) toward yellow (~45°) and finally browns
+            (under 40°). Go Bananas reads the dominant hue from your photo
             and maps it to the USDA scale.
           </Text>
         </View>
@@ -487,8 +487,8 @@ function NamingModal({
         <View style={[styles.modalCard, shadow.card]}>
           <Text style={styles.modalTitle}>Name the family</Text>
           <Text style={styles.modalBody}>
-            5–8 bananas, all related. Phil, Carla, Greg, etc. — they get
-            their own first names. You name the family.
+            5–8 bananas, all related. Phil, Carla, Greg, etc. get their own
+            first names. You name the family.
           </Text>
           <TextInput
             value={value}

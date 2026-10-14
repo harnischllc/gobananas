@@ -12,22 +12,45 @@ import { Stage } from './stages';
 const KEY = 'gobananas/history/v1';
 const MAX = 50;
 
+/**
+ * Lifetime count of banana scans (not-a-banana and unreadable scans excluded).
+ * History is capped at MAX, so milestones like "scan 100" need their own
+ * counter. Seeded from history length the first time it is read on a device
+ * that predates it.
+ */
+const COUNT_KEY = 'gobananas/scan_count/v1';
+
 export interface ScanRecord {
   id: string;
   /** ISO 8601 timestamp. */
   timestamp: string;
   /** Local image URI (cache dir). */
   imageUri: string;
-  /** Predicted stage from the classifier. */
+  /**
+   * Predicted stage from the classifier. Always a valid Stage, even on
+   * not-a-banana rows (where it is meaningless), so every STAGES[record.stage]
+   * lookup on an older build or an older row keeps working.
+   */
   stage: Stage;
-  /** Hue in degrees the classifier saw. */
+  /** Hue in degrees the classifier saw, rounded to the stage-lookup grid. */
   hue: number;
-  /** Confidence 0–100. */
+  /** Unrounded hue (build 15+). Absent on older rows. */
+  rawHue?: number;
+  /** Confidence 0–100. Build 14 rows carry the old inverted number. */
   confidence: number;
-  /** True if the classifier was running in demo mode. */
+  /** True if the classifier could not decode the photo (fallback result). */
   demo: boolean;
+  /** True when the frame had nothing banana-colored in it (build 15+). */
+  notBanana?: boolean;
+  /** Aside key (lib/asides.ts) chosen at scan time, if any (build 15+). */
+  aside?: string;
   /** User correction, if any. */
   corrected?: Stage;
+}
+
+/** A row the stage UI should treat as a real banana reading. */
+export function isBananaScan(r: ScanRecord): boolean {
+  return !r.notBanana && !r.demo;
 }
 
 export async function loadHistory(): Promise<ScanRecord[]> {
@@ -50,11 +73,68 @@ export async function addScan(record: Omit<ScanRecord, 'id' | 'timestamp'>): Pro
   const existing = await loadHistory();
   const next = [full, ...existing].slice(0, MAX);
   await AsyncStorage.setItem(KEY, JSON.stringify(next));
+  if (isBananaScan(full)) {
+    const count = await loadScanCount(existing);
+    await saveScanCount(count + 1);
+  }
   return full;
 }
 
 export async function clearHistory(): Promise<void> {
   await AsyncStorage.removeItem(KEY);
+}
+
+/**
+ * Lifetime banana-scan count. Pass the current history so a device that
+ * predates the counter is seeded with what it already has (at most MAX).
+ */
+export async function loadScanCount(history: ScanRecord[]): Promise<number> {
+  try {
+    const raw = await AsyncStorage.getItem(COUNT_KEY);
+    if (raw !== null) {
+      const n = parseInt(raw, 10);
+      if (Number.isFinite(n) && n >= 0) return n;
+    }
+  } catch {
+    // fall through to the seed
+  }
+  const seed = history.filter(isBananaScan).length;
+  await saveScanCount(seed);
+  return seed;
+}
+
+async function saveScanCount(n: number): Promise<void> {
+  try {
+    await AsyncStorage.setItem(COUNT_KEY, String(n));
+  } catch {
+    // Non-fatal: the milestone aside may fire late or not at all.
+  }
+}
+
+/** Banana scans whose local calendar day matches `now`. */
+export function countScansOnDay(history: ScanRecord[], now: Date): number {
+  return history.filter((r) => {
+    if (!isBananaScan(r)) return false;
+    const t = new Date(r.timestamp);
+    return (
+      t.getFullYear() === now.getFullYear() &&
+      t.getMonth() === now.getMonth() &&
+      t.getDate() === now.getDate()
+    );
+  }).length;
+}
+
+/**
+ * How many not-a-banana scans in a row ended at this record (including it),
+ * walking from this row toward older rows. Drives the escalation line on the
+ * not-a-banana card.
+ */
+export function notBananaRunEndingAt(history: ScanRecord[], id: string): number {
+  const start = history.findIndex((r) => r.id === id);
+  if (start < 0 || !history[start].notBanana) return 0;
+  let run = 0;
+  for (let i = start; i < history.length && history[i].notBanana; i++) run++;
+  return run;
 }
 
 /** Set (or change) the user's stage correction on an existing record. */

@@ -78,7 +78,7 @@ function Tile({
         {banana.name}
       </Text>
       {dead ? (
-        <Text style={styles.deadReason}>{banana.end_reason ?? '—'}</Text>
+        <Text style={styles.deadReason}>{banana.end_reason ?? '·'}</Text>
       ) : (
         <View style={styles.metaRow}>
           <Text style={styles.metaGlyph}>{env.glyph}</Text>

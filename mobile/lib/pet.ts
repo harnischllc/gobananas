@@ -29,6 +29,7 @@
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Stage } from './stages';
+import { nameReaction } from './nameReactions';
 
 const STORAGE_KEY = 'gobananas/bunch/v1';
 const PREFS_STORAGE_KEY = 'gobananas/prefs/v1';
@@ -73,7 +74,7 @@ export const GAME_SPEEDS: Record<GameSpeed, GameSpeedDef> = {
     id: 'slow',
     label: 'Slow',
     lifecycleSeconds: 5 * 24 * 60 * 60,
-    blurb: 'Real banana time — about 5 days.',
+    blurb: 'Real banana time, about 5 days.',
   },
 };
 
@@ -157,7 +158,7 @@ export const ENVIRONMENTS: Record<Environment, EnvironmentDef> = {
     short: 'Basket',
     glyph: '🧺',
     multiplier: 1.2,
-    blurb: 'Other fruits release ethylene — slight speed-up.',
+    blurb: 'Other fruits release ethylene. Slight speed-up.',
   },
   paper_bag: {
     id: 'paper_bag',
@@ -181,7 +182,7 @@ export const ENVIRONMENTS: Record<Environment, EnvironmentDef> = {
     short: 'Hook',
     glyph: '🪝',
     multiplier: 0.85,
-    blurb: 'No bruising contact — slightly slower.',
+    blurb: 'No bruising contact. Slightly slower.',
   },
   fridge: {
     id: 'fridge',
@@ -190,7 +191,7 @@ export const ENVIRONMENTS: Record<Environment, EnvironmentDef> = {
     glyph: '🧊',
     multiplier: 0.4,
     blurb:
-      'Slows ripening dramatically. Skin browns cosmetically — flesh stays fine. Real fact.',
+      'Slows ripening dramatically. Skin browns cosmetically; flesh stays fine. Real fact.',
   },
 };
 
@@ -375,20 +376,29 @@ export async function plantBunch(
     });
   }
 
+  const history: BunchEvent[] = [
+    {
+      iso: now,
+      type: 'planted',
+      detail: `${trimmed} arrived. ${count} green bananas, ${speedDef.label.toLowerCase()} mode.`,
+      glyph: '🌱',
+    },
+  ];
+  // Easter egg: some family names get a reply in the story log. Only when
+  // the name was actually typed (an empty field defaults to The Smiths and
+  // should not trigger the Smiths line).
+  const reaction = nameReaction(bunchName, FIRST_NAME_ROSTER);
+  if (reaction) {
+    history.push({ iso: now, type: 'event', detail: reaction, glyph: '🐒' });
+  }
+
   const bunch: Bunch = {
     id: `bunch-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
     name: trimmed,
     planted_iso: now,
     lifecycle_seconds: speedDef.lifecycleSeconds,
     bananas,
-    history: [
-      {
-        iso: now,
-        type: 'planted',
-        detail: `${trimmed} arrived. ${count} green bananas, ${speedDef.label.toLowerCase()} mode.`,
-        glyph: '🌱',
-      },
-    ],
+    history,
   };
 
   await saveBunch(bunch);
@@ -514,7 +524,7 @@ const RANDOM_EVENTS: RandomEvent[] = [
   {
     reason: 'dropped',
     detail: (banana) =>
-      `You dropped ${banana}. Bruised on impact — straight to brown-speckled.`,
+      `You dropped ${banana}. Bruised on impact, straight to brown-speckled.`,
     glyph: '💥',
     ends: false,
     sideEffect: (banana) => {
@@ -636,7 +646,7 @@ export async function eatBanana(
     eaten.ripeness >= 65 && eaten.ripeness < 85
       ? `Ate ${eaten.name} at peak. Chef's kiss.`
       : eaten.ripeness >= 85
-        ? `Ate ${eaten.name}. Bit past peak — no judgment here.`
+        ? `Ate ${eaten.name}. Bit past peak, no judgment here.`
         : eaten.ripeness >= 36
           ? `Ate ${eaten.name} early. Bold choice.`
           : `Ate ${eaten.name} green. Brave.`;

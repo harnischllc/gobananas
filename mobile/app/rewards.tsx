@@ -209,7 +209,7 @@ export default function RewardsScreen() {
           <View style={[styles.tomorrowCard, shadow.card]}>
             <Text style={styles.tomorrowTitle}>Already opened today</Text>
             <Text style={styles.tomorrowBody}>
-              Come back tomorrow for the next crate. Your streak is safe — just
+              Come back tomorrow for the next crate. Your streak is safe. Just
               don't miss a day.
             </Text>
             <Text style={styles.tomorrowDate}>Today: {today}</Text>

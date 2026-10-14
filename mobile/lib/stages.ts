@@ -106,7 +106,7 @@ export const STAGES: Record<Stage, StageDef> = {
     stage: 7,
     label: 'Yellow with Brown Flecks',
     description: 'Heavily speckled or browning. Overripe for fresh eating.',
-    vibe: 'Past peak — but banana bread is calling.',
+    vibe: 'Past peak, but banana bread is calling.',
     hue: [0, 40],
     daysToNext: [2, 5],
     recommendations: [
@@ -129,15 +129,58 @@ export function hueToStage(hue: number): Stage {
   // to white balance, JPEG compression, and ambient lighting. First TestFlight
   // calibration: a Stage 6/7 banana scanned at hue=40°. Shifting all bounds
   // up by 20° from the Python defaults; further tuning from more data later.
+  //
+  // Every hue maps to its NEAREST band. Build 14 fell through to `return 6`
+  // for anything no band claimed, so a pink wall (340-360) or a teal scene
+  // (140-160), both of which survive the classifier's filter, came back as
+  // "Peak banana." The classifier now flags those frames as not-a-banana
+  // (lib/hue.ts looksLikeBanana); this mapping is the backstop.
   const h = ((hue % 360) + 360) % 360;
-  if (h >= 80 && h <= 140) return 1;
+  if (h >= 340) return 7; // magenta-red wraps through 0 into brown
+  if (h >= 80 && h < 160) return 1; // 140-160: deep green, nearest band is 1
   if (h >= 70 && h < 80) return 2;
   if (h >= 60 && h < 70) return 3;
   if (h >= 50 && h < 60) return 4;
   if (h >= 45 && h < 50) return 5;
   if (h >= 40 && h < 45) return 6;
-  if (h >= 0 && h < 40) return 7;
-  return 6; // Default for any unmapped hue. Was Stage 3 pre-calibration.
+  if (h < 40) return 7;
+  // 160-340 is filtered out before we get here; nearest band if called directly.
+  return h < 250 ? 1 : 7;
+}
+
+/**
+ * The classifier rounds the median hue to this many degrees before the stage
+ * lookup (the bands were calibrated at that granularity). A raw hue h lands in
+ * the band that round(h) lands in, so in raw terms every nominal boundary sits
+ * HUE_ROUNDING / 2 lower than the number in STAGES. stageConfidence() accounts
+ * for that; nothing else should need to.
+ */
+export const HUE_ROUNDING = 5;
+
+/**
+ * How far the UNROUNDED hue sits from the nearest boundary with an adjacent
+ * stage, as a 0-100 score. 100 means dead center of the band (or deeper into
+ * the only open side: a hue of 110 is very confidently green, a hue of 5 very
+ * confidently brown); 0 means right on the line.
+ *
+ * Replaces the build 14 formula, inherited from the Python, which was
+ * inverted (edge = 100, center = 50) and was fed the already-rounded hue, so
+ * Stages 5 and 6 could only ever print 100. The number is no longer shown on
+ * the result screen; it rides in the corrections payload for retuning.
+ */
+export function stageConfidence(rawHue: number, stage: Stage): number {
+  const [min, max] = STAGES[stage].hue;
+  const shift = HUE_ROUNDING / 2;
+  const half = (max - min) / 2;
+  let h = ((rawHue % 360) + 360) % 360;
+  // Magenta-side survivors are deep red-brown; measure them below zero.
+  if (stage === 7 && h > 180) h -= 360;
+  const dists: number[] = [];
+  if (stage !== 7) dists.push(Math.abs(h - (min - shift)));
+  if (stage !== 1) dists.push(Math.abs(h - (max - shift)));
+  const d = Math.min(...dists);
+  const score = (d / half) * 100;
+  return Math.round(Math.max(0, Math.min(100, score)) * 10) / 10;
 }
 
 /**
@@ -170,10 +213,11 @@ export function peakLabel(stage: Stage): string {
 
 /**
  * Convert a numeric confidence (0–100) to friendly words.
- * Algorithmic confidence is no longer surfaced to the user (the persona
- * doesn't care how confident the algorithm is — they care how good the
- * banana is, see ratingFromStage). Kept for the corrections endpoint
- * payload and any future debug/admin surface.
+ * Algorithmic confidence is not surfaced to the user (the persona doesn't
+ * care how confident the algorithm is, they care how good the banana is, see
+ * ratingFromStage). Build 14 leaked the raw percentage into the result
+ * screen's diagnostic line; build 15 removed it. Kept for any future
+ * debug/admin surface.
  */
 export function confidenceWord(confidence: number): string {
   if (confidence >= 90) return 'Pretty sure';
